@@ -75,10 +75,10 @@ export class FlightSearchComponent {
   protected readonly flightActions =
     contentChild<TemplateRef<{ $implicit: Flight }>>('flightActions');
   protected readonly airports = AIRPORTS;
-  protected readonly flightStatuses: Record<FlightStatus, string> = {
-    SCHEDULED: 'Programado',
-    DELAYED: 'Retrasado',
-    CANCELLED: 'Cancelado',
+  protected readonly flightStatuses: Record<FlightStatus, { label: string; icon: string }> = {
+    SCHEDULED: { label: 'Programado', icon: '✓' },
+    DELAYED: { label: 'Retrasado', icon: '◷' },
+    CANCELLED: { label: 'Cancelado', icon: '×' },
   };
   protected readonly filters = signal<SearchFlightsQuery>({
     origin: 'BOG',
@@ -208,6 +208,16 @@ export class FlightSearchComponent {
 
   protected fare(value: number): string {
     return `COP ${AMOUNT.format(value)}`;
+  }
+
+  protected duration(flight: Flight): string | null {
+    const elapsed = Date.parse(flight.arrivalAt) - Date.parse(flight.departureAt);
+    if (!Number.isFinite(elapsed) || elapsed < 0) return null;
+
+    const minutes = Math.round(elapsed / 60_000);
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    return hours ? `${hours} h ${remainder} min` : `${minutes} min`;
   }
 
   private edit(fields: Partial<SearchFlightsQuery>): void {

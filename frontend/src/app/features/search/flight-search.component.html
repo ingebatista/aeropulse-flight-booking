@@ -9,7 +9,10 @@
       </div>
     } @else {
       <h1>{{ flightActions() ? 'Administración' : 'Estado de vuelos' }}</h1>
+      <ng-container [ngTemplateOutlet]="connectionStatus" />
     }
+  </div>
+  <ng-template #connectionStatus>
     <div class="connection" role="status">
       @switch (connection().status) {
         @case ('connected') {
@@ -29,7 +32,13 @@
         }
       }
     </div>
-  </div>
+  </ng-template>
+  @if (publicSearch) {
+    <div class="connection-strip">
+      <span>Conexión de vuelos</span>
+      <ng-container [ngTemplateOutlet]="connectionStatus" />
+    </div>
+  }
   @if (statusView) {
     <a class="admin-access-link" routerLink="/admin">Administración</a>
   }
@@ -147,7 +156,12 @@
     <div class="results-heading">
       <div>
         <h2 id="results-title">
-          {{ airports[query.origin].city }} a {{ airports[query.destination].city }}
+          @if (publicSearch) {
+            Vuelos de {{ airports[query.origin].city }} ({{ query.origin }}) a
+            {{ airports[query.destination].city }} ({{ query.destination }})
+          } @else {
+            {{ airports[query.origin].city }} a {{ airports[query.destination].city }}
+          }
         </h2>
         <p>{{ dateLabel(query.date) }} · UTC</p>
       </div>
@@ -176,7 +190,12 @@
     @if (flights.length) {
       <ul class="flight-list" role="list">
         @for (flight of flights; track flight.id) {
-          <li class="flight" [attr.tabindex]="flightActions() ? '-1' : null">
+          @let status = flightStatuses[flight.status];
+          <li
+            class="flight"
+            [attr.data-flight-status]="publicSearch ? flight.status : null"
+            [attr.tabindex]="flightActions() ? '-1' : null"
+          >
             <div class="flight__number">
               <span class="eyebrow">Vuelo</span>
               <strong>{{ flight.flightNumber }}</strong>
@@ -187,7 +206,16 @@
                 <time [attr.datetime]="flight.departureAt">{{ time(flight.departureAt) }}</time>
                 <span>{{ flight.origin }} <span class="utc">UTC</span></span>
               </div>
-              <span class="itinerary__line" aria-hidden="true"></span>
+              <div class="itinerary__route">
+                @if (publicSearch) {
+                  @if (duration(flight); as travelTime) {
+                    <span class="itinerary__duration"
+                      ><span class="sr-only">Duración </span>{{ travelTime }}</span
+                    >
+                  }
+                }
+                <span class="itinerary__line" aria-hidden="true"></span>
+              </div>
               <div class="itinerary__point">
                 <span class="eyebrow">Llegada</span>
                 <time [attr.datetime]="flight.arrivalAt">{{ time(flight.arrivalAt) }}</time>
@@ -201,10 +229,18 @@
             </div>
             <div class="flight__statuses">
               <span class="flight-status" [attr.data-status]="flight.status">
-                {{ flightStatuses[flight.status] }}
+                @if (publicSearch) {
+                  <span class="flight-status__icon" aria-hidden="true">{{ status.icon }}</span>
+                }
+                {{ status.label }}
               </span>
               @if (flight.soldOut) {
-                <span class="flight-status" data-status="SOLD_OUT">Agotado</span>
+                <span class="flight-status" data-status="SOLD_OUT">
+                  @if (publicSearch) {
+                    <span class="flight-status__icon" aria-hidden="true">−</span>
+                  }
+                  Agotado
+                </span>
               }
             </div>
             <div class="flight__fare">
@@ -244,4 +280,29 @@
       </div>
     }
   </section>
+  @if (publicSearch) {
+    <ul class="flight-information" role="list" aria-label="Información de los vuelos">
+      <li>
+        <span class="flight-information__icon" aria-hidden="true">◷</span>
+        <div>
+          <strong>Horarios en UTC</strong>
+          <p>Las horas de salida y llegada usan la misma zona horaria.</p>
+        </div>
+      </li>
+      <li>
+        <span class="flight-information__icon" aria-hidden="true">$</span>
+        <div>
+          <strong>Tarifas en COP</strong>
+          <p>Consulta el importe publicado para cada vuelo en pesos colombianos.</p>
+        </div>
+      </li>
+      <li>
+        <span class="flight-information__icon" aria-hidden="true">▦</span>
+        <div>
+          <strong>Ocupación por vuelo</strong>
+          <p>«Ver ocupación» abre el mapa y el recuento de asientos.</p>
+        </div>
+      </li>
+    </ul>
+  }
 </div>

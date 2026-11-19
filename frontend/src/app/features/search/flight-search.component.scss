@@ -373,6 +373,10 @@ h2 {
   line-height: 1.2;
 }
 
+.itinerary__route {
+  display: contents;
+}
+
 .itinerary__line {
   display: block;
   position: relative;
@@ -463,6 +467,7 @@ h2 {
 
 .search-page--public {
   --panel-padding: clamp(16px, 2.5vw, 32px);
+  --flight-info-surface: #eef1fb;
 
   .page-heading {
     align-items: flex-start;
@@ -480,8 +485,18 @@ h2 {
     font-size: 16px;
   }
 
-  .connection {
-    margin-top: 4px;
+  .connection-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-bottom: 16px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: var(--flight-info-surface);
+    color: var(--color-navy);
+    font-weight: 600;
   }
 
   .search-form {
@@ -543,16 +558,16 @@ h2 {
   .results {
     display: grid;
     gap: 16px;
-    padding: var(--panel-padding);
-    border: 1px solid var(--color-outline);
-    border-radius: 12px;
-    background: var(--color-surface);
-    box-shadow: 0 2px 6px #262b400a;
   }
 
   .results-heading,
   .notice--error {
     margin-bottom: 0;
+  }
+
+  .results-heading h2 {
+    font-size: clamp(22px, 2.3vw, 30px);
+    letter-spacing: -0.02em;
   }
 
   .result-count:not(:empty) {
@@ -562,10 +577,127 @@ h2 {
     color: var(--color-primary-hover);
   }
 
-  .flight,
-  .notice--empty {
-    background: var(--color-background);
-    box-shadow: none;
+  .flight-list {
+    gap: 16px;
+  }
+
+  .flight {
+    border-inline-start: 5px solid var(--flight-accent, var(--color-control));
+    padding: clamp(16px, 2vw, 24px);
+  }
+
+  .flight[data-flight-status='SCHEDULED'] {
+    --flight-accent: #087a53;
+  }
+
+  .flight[data-flight-status='DELAYED'] {
+    --flight-accent: #a86005;
+  }
+
+  .flight[data-flight-status='CANCELLED'] {
+    --flight-accent: var(--color-error);
+  }
+
+  .flight__number strong {
+    font-size: 22px;
+  }
+
+  .itinerary {
+    grid-template-columns: minmax(0, 1fr) minmax(64px, 0.85fr) minmax(0, 1fr);
+    gap: clamp(8px, 1.5vw, 16px);
+  }
+
+  .itinerary__point time {
+    font-size: clamp(25px, 2.6vw, 36px);
+  }
+
+  .itinerary__point:last-child {
+    text-align: right;
+  }
+
+  .itinerary__route {
+    display: grid;
+    gap: 8px;
+    align-content: center;
+    text-align: center;
+  }
+
+  .itinerary__duration {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .itinerary__line,
+  .itinerary__line::after {
+    border-color: var(--flight-accent, var(--color-control));
+  }
+
+  .itinerary__line::before {
+    position: absolute;
+    inset-block-start: -4px;
+    inset-inline-start: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--flight-accent, var(--color-control));
+    content: '';
+  }
+
+  .flight-status::before {
+    content: none;
+  }
+
+  .flight-status__icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .flight__actions a {
+    justify-content: center;
+  }
+
+  .flight__actions a:not(.flight__choose) {
+    border: 1px solid var(--color-outline);
+    border-radius: 8px;
+    background: var(--flight-info-surface);
+    text-decoration: none;
+  }
+
+  .flight__actions a:not(.flight__choose):hover {
+    text-decoration: underline;
+  }
+
+  .flight-information {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 24px;
+    margin: 24px 0 0;
+    padding: clamp(16px, 2vw, 24px);
+    border-radius: 12px;
+    background: var(--flight-info-surface);
+    list-style: none;
+  }
+
+  .flight-information li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .flight-information__icon {
+    display: grid;
+    flex: 0 0 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-primary-hover);
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  .flight-information p {
+    font-size: 14px;
   }
 }
 
@@ -590,13 +722,31 @@ h2 {
   }
 
   .search-page--public .flight {
-    grid-template-columns:
-      minmax(74px, 0.7fr) minmax(180px, 1.8fr) minmax(120px, 1fr) minmax(112px, auto)
-      auto;
+    grid-template-columns: minmax(80px, 0.65fr) minmax(275px, 2.6fr) minmax(114px, 1fr) auto;
+    grid-template-areas:
+      'number itinerary statuses fare'
+      'number itinerary statuses actions';
+    row-gap: 8px;
+  }
+
+  .search-page--public .flight__number {
+    grid-area: number;
+  }
+
+  .search-page--public .itinerary {
+    grid-area: itinerary;
+  }
+
+  .search-page--public .flight__statuses {
+    grid-area: statuses;
+  }
+
+  .search-page--public .flight__fare {
+    grid-area: fare;
   }
 
   .search-page--public .flight__actions {
-    grid-column: auto;
+    grid-area: actions;
     border-top: 0;
     padding-top: 0;
   }
@@ -693,9 +843,13 @@ h2 {
     grid-template-columns: repeat(5, minmax(44px, 1fr));
   }
 
-  .search-page--public .flight__actions a {
-    flex: 1 1 auto;
-    justify-content: center;
+  .search-page--public .flight__actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .search-page--public .flight-information {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
