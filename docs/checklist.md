@@ -212,7 +212,7 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 
 **M4 · Registros**
 
-- [ ] **[I]** `@back` `M4` Añadir registro (logs) básico de bloqueos, confirmaciones, expiraciones y conflictos, útil para depurar y para la demostración. Sin tokens, identificadores de cliente ni datos de pago.
+- [x] **[I]** `@back` `M4` Añadir registro (logs) básico de bloqueos, confirmaciones, expiraciones y conflictos, útil para depurar y para la demostración. Sin tokens, identificadores de cliente ni datos de pago. Evidencia (2026-11-19, `lane/backend`): registros en `HoldService`, `ExpirySweeper`, `BookingService` y `FlightsService`; `backend/test/logging/no-secrets.spec.ts` recorre el flujo completo y comprueba que ningún registro contiene `clientId`, tokens, claves, nombres, tarjetas ni el código de reserva.
 
 ## 6. Flujo funcional y tiempo real
 
@@ -221,8 +221,8 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 - [x] **[I]** `@back` `M1` Implementar la validación de entradas y el catálogo de errores de §4 (`ValidationPipe` estricta, forma `{ error: { code, message } }`, `fields` en `VALIDATION_ERROR`) y `GET /api/flights`. [Especificación de contratos](contracts-and-open-questions.md). Evidencia: `backend/apps/api/src/http` (`ApiValidationPipe`, `ApiExceptionFilter`, `FlightsController`) y `backend/test/api/flights-search.spec.ts`. **Pendiente:** el `404` de ruta inexistente usa `INTERNAL_ERROR` hasta resolver CCR-1.
 - [x] **[I]** `@back` `M2` Implementar `EventBus` (puerto y adaptador en proceso), `POST` y `DELETE` del bloqueo, el barrido de 1 s y el *gateway* de Socket.IO (`join`, instantánea con `myHold` y `seat.changed`). Evidencia: `HoldService`, `ExpirySweeper`, `SnapshotService`, `SeatsController`, `RealtimeGateway` y `test/realtime/realtime.spec.ts` (9 pruebas con `socket.io-client`; ver CCR-2). `npm test -w backend`: 137 pruebas pasan.
 - [x] **[I]** `@back` `M3` Implementar `PaymentGateway` con su simulador, `POST /api/bookings/confirm`, `GET /api/bookings/{code}` y el evento `flight.status_changed` por agotado. Evidencia: `PaymentGateway`/`SimulatedPaymentGateway`, `BookingService`, `BookingsController` y `test/bookings/*.spec.ts` (incluido `ticket.spec.ts`). `npm test -w backend`: 205 pruebas pasan.
-- [ ] **[I]** `@back` `M4` Implementar `PATCH /api/admin/flights/{flightId}/status` con `AdminTokenGuard`, además de límite de tasa, `helmet` y el arranque seguro en producción.
-- [ ] **[V]** `@back` `M4` Con un cliente `socket.io-client` real: `join` devuelve instantánea y `myHold`; un evento anterior al *ack* se funde sin perderse; el `PATCH` de administración llega a la sala `search`. Evidencia: _(test)_
+- [x] **[I]** `@back` `M4` Implementar `PATCH /api/admin/flights/{flightId}/status` con `AdminTokenGuard`, además de límite de tasa, `helmet` y el arranque seguro en producción. Evidencia: `backend/test/admin/flight-status.spec.ts` (transiciones, `401` con `WWW-Authenticate: Bearer`, `409`, carrera con `hold`), `startup.spec.ts` (no arranca en producción con el token de desarrollo) y `backend/test/http/rate-limit.spec.ts` (`429` con `Retry-After` y cabeceras de `helmet`). Límites por defecto: global 120, `hold` 30, `confirm` 10 y admin 30 por minuto, por ruta y por IP.
+- [x] **[V]** `@back` `M4` Con un cliente `socket.io-client` real: `join` devuelve instantánea y `myHold`; un evento anterior al *ack* se funde sin perderse; el `PATCH` de administración llega a la sala `search`. Evidencia: `backend/test/realtime/realtime-e2e.spec.ts` (`myHold` tras reconectar, evento recibido antes del *ack* con la tabla bloqueada, `PATCH` recibido en `search`). Usa `socket.io-client` desde la raíz (CCR-2). `npm test` desde la raíz: backend 247 pruebas y frontend en verde.
 
 ### 6.B Frontend (carril `@front`)
 

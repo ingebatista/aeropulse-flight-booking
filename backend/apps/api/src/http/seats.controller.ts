@@ -9,7 +9,9 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { HoldService } from '../inventory/hold.service';
+import { holdThrottle } from './rate-limit';
 import { SeatParamsDto } from './seat-params.dto';
 import { ClientId, HoldToken } from './validation/headers';
 import { RejectBodyGuard } from './validation/reject-body.guard';
@@ -22,6 +24,7 @@ export class SeatsController {
 
   /** `201` al adquirirlo; `200` si ya pertenece al mismo cliente y sigue vigente. */
   @Post()
+  @Throttle(holdThrottle)
   async hold(
     @Param() params: SeatParamsDto,
     @ClientId() clientId: string,

@@ -1,6 +1,7 @@
-import type { HoldResponse, SeatEvent, Ticket } from '@aeropulse/shared';
+import type { FlightStatusEvent, HoldResponse, SeatEvent, Ticket } from '@aeropulse/shared';
 import { type DomainEvent, EventBus } from '@backend/events';
 import { runSeed } from '@backend/persistence';
+import type { LoggerService, LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
@@ -9,6 +10,9 @@ import type { DataSource } from 'typeorm';
 import { AppModule } from '../../apps/api/src/app.module';
 import { configureApp } from '../../apps/api/src/bootstrap';
 import { startTestDatabase, type TestDatabase } from './postgres';
+
+/** Token de administración de las pruebas (no es el de desarrollo). */
+export const TEST_ADMIN_TOKEN = 'token-de-pruebas-admin';
 
 /** Instante fijo del seed: los datos no dependen del día real. */
 export const SEED_NOW = new Date('2026-11-18T12:00:00.000Z');
@@ -69,6 +73,7 @@ export interface TestApi {
 export async function startApi(
   { db }: SeededDatabase,
   env: Record<string, string> = {},
+  logger: LoggerService | LogLevel[] | false = ['error'],
 ): Promise<TestApi> {
   Object.assign(process.env, {
     PGHOST: db.container.getHost(),
@@ -77,11 +82,23 @@ export async function startApi(
     APP_DB_PASSWORD: 'app_test',
     HOLD_TTL_SECONDS: '300',
     SWEEP_INTERVAL_MS: '0',
+    // Límites altos: las pruebas de concurrencia hacen decenas de peticiones desde una IP.
+    // `rate-limit.spec.ts` los baja para comprobar el 429.
+    RATE_LIMIT_GLOBAL: '100000',
+    RATE_LIMIT_HOLD: '100000',
+    RATE_LIMIT_CONFIRM: '100000',
+    RATE_LIMIT_ADMIN: '100000',
+    NODE_ENV: 'test',
+    ADMIN_TOKEN: TEST_ADMIN_TOKEN,
     ...env,
   });
   delete process.env.DATABASE_URL;
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error'] });
+  // Sin `abortOnError`, un fallo de arranque llama a process.abort() y tumba Jest.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger,
+    abortOnError: false,
+  });
   configureApp(app);
   await app.listen(0, '127.0.0.1');
   const baseUrl = (await app.getUrl()).replace('[::1]', '127.0.0.1');
@@ -280,4 +297,36 @@ export async function countBookings(owner: DataSource, flightId: string): Promis
     [flightId],
   );
   return rows[0].count;
+}
+
+/** `PATCH /api/admin/flights/{flightId}/status`. */
+export function changeFlightStatus(
+  api: TestApi,
+  flightId: string,
+  status: string,
+  token: string | null = TEST_ADMIN_TOKEN,
+): Promise<ApiResult<FlightStatusEvent>> {
+  return fetch(`${api.baseUrl}/api/admin/flights/${flightId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+      ...(token === null ? {} : { authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ status }),
+  }).then((r) => send<FlightStatusEvent>(r));
+}
+
+/**
+ * Guarda `process.env` y devuelve cómo restaurarlo. Con `--runInBand` las
+ * variables persisten entre archivos: quien las cambie (límites bajos,
+ * producción) debe dejarlas como estaban.
+ */
+export function snapshotEnv(): () => void {
+  const saved = { ...process.env };
+  return () => {
+    for (const key of Object.keys(process.env)) {
+      if (!(key in saved)) delete process.env[key];
+    }
+    Object.assign(process.env, saved);
+  };
 }

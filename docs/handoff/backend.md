@@ -159,3 +159,35 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
   - Ante una colisión del código de reserva se reintenta la transacción completa, porque en PostgreSQL un error aborta la transacción.
   - Si la precomprobación falla, también se vuelve a consultar la clave antes de responder. Así, un reintento que llega justo después del commit de otro con la misma clave recibe `200` y no `409`.
 - Cambios que necesita la documentación: ninguno obligatorio. Se puede añadir a arch §4.4 la regla de marcas y el formato de la referencia si el integrador lo considera útil.
+
+### M4 · 2026-11-19
+- Hecho:
+  - `libs/domain/src/flights`: `canChangeFlightStatus`, `allowedOrigins` y `decideStatusChange` (`SCHEDULED → DELAYED | CANCELLED`, `DELAYED → CANCELLED`, `CANCELLED` terminal).
+  - `FlightsService.changeStatus`: un solo `UPDATE` condicional que solo toma la fila del vuelo y sube la versión, y `flight.status_changed` tras el commit. Sin filas afectadas: `404`, `200` con la versión actual y sin evento (mismo estado) o `409 INVALID_FLIGHT_TRANSITION`.
+  - `PATCH /api/admin/flights/:flightId/status` (`AdminFlightsController` en `AdminHttpModule`): `AdminTokenGuard` con `timingSafeEqual` sobre SHA-256, `401` con `WWW-Authenticate: Bearer`, `RequireJsonGuard` y DTO con `DELAYED`/`CANCELLED`.
+  - Arranque seguro: `readAdminToken` impide arrancar con `NODE_ENV=production` si `ADMIN_TOKEN` falta o es `aeropulse-admin-dev`. El guard es proveedor de `AdminHttpModule`, así que se valida al iniciar.
+  - Límite de tasa: `ThrottlerModule` con un único *throttler* `default` (cabecera `Retry-After` sin sufijo) y `HttpThrottlerGuard` global que omite el *gateway*. Límites más estrictos en `hold`, `confirm` y `/api/admin`. `ApiExceptionFilter` traduce a `429 RATE_LIMITED`.
+  - `helmet()` en `configureApp()`.
+  - `ApiError` admite cabeceras y el filtro las envía.
+  - Registros con `Logger`: bloqueo (adquirido, repetido, rechazado), liberación (hecha, sin cambios, rechazada), barrido (solo si liberó algo), confirmación (confirmada, repetida, rechazada con su código, agotado) y cambio de estado del vuelo. Solo llevan vuelo, asiento, versión y código de error.
+- Comando y salida (worktree `lane-backend`, 2026-11-19, desde la raíz):
+  - `npm run build` → shared, backend (`webpack compiled successfully` para api y migrate) y frontend (`Application bundle generation complete`).
+  - `npm test` → backend `Test Suites: 30 passed, 30 total · Tests: 247 passed, 247 total`; frontend `Test Files 1 passed (1)`.
+  - `npm run lint` → 0 errores. `prettier --check "backend/**/*.ts"` → sin diferencias.
+- Evidencia por tarea de la checklist:
+  - §5 M4, registros → `test/logging/no-secrets.spec.ts`: recorre bloqueo, liberación, conflicto, pago rechazado, confirmación, reintento, `422`, barrido y `PATCH` con un `LoggerService` que captura todo. Hay un registro de cada operación y ninguno contiene `clientId`, `holdToken`, `Idempotency-Key`, el token de administración, nombres, tarjetas, últimos 4 dígitos ni el código de reserva.
+  - §6.A M4 [I] →
+    - `test/admin/flight-status.spec.ts` (16 pruebas): transiciones, versión y eventos, mismo estado sin evento, `409`, `soldOut` conservado, `hold` rechazado tras cancelar, 15 rondas de cancelación y `hold` simultáneos (o el `hold` gana antes, o revierte con el asiento intacto), `401` en todas sus variantes, `400`, `404` y `415`;
+    - `test/admin/startup.spec.ts`: `readAdminToken` y la API completa, que no arranca en producción con el token de desarrollo y sí con uno propio;
+    - `test/http/rate-limit.spec.ts`: `429 RATE_LIMITED` con `Retry-After` en búsqueda, `hold`, `confirm` y admin; una IP no afecta a otra; el *gateway* no se limita; cabeceras de `helmet`; un límite inválido detiene el arranque.
+  - §6.A M4 [V] → `test/realtime/realtime-e2e.spec.ts` con `socket.io-client`:
+    - `join` tras «recargar» devuelve `myHold` del titular;
+    - un evento publicado mientras la instantánea espera (tabla `seats` bloqueada) llega **antes** del *ack* y con una versión igual o mayor que la de la instantánea;
+    - el `PATCH` de administración llega como `flight.status_changed` a la sala `search`.
+- Desviaciones del contrato: ninguna. Decisiones que el contrato no fijaba:
+  - Límites por defecto aprobados por el humano, por minuto y por IP: global 120, `hold` 30, `confirm` 10 y admin 30. En `@nestjs/throttler` 6 el contador es **por ruta** y por IP.
+  - `401` también con otro esquema distinto de `Bearer`. El límite de admin se aplica antes de autenticar (los guards globales van primero).
+- Cambios que necesita la documentación (archivos del integrador):
+  - `.env.example` y `docker-compose.yml`: declarar `RATE_LIMIT_GLOBAL`, `RATE_LIMIT_HOLD`, `RATE_LIMIT_CONFIRM` y `RATE_LIMIT_ADMIN` (opcionales, con los valores por defecto de arriba).
+  - arch §5: anotar que el límite es por ruta y por IP, y los valores.
+- **Estado del carril:** M1 a M4 completos en `lane/backend`. Listo para que el integrador fusione en `develop` e inicie M5. Siguen abiertos CCR-1 y CCR-2.

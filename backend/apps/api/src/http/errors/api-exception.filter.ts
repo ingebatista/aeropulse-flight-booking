@@ -9,6 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { HttpAdapterHost } from '@nestjs/core';
+import { ThrottlerException } from '@nestjs/throttler';
 import { ApiError } from './api-error';
 
 /**
@@ -27,11 +28,24 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     const error = this.toApiError(exception);
     const body = error.getResponse() as ErrorResponse;
-    this.adapterHost.httpAdapter.reply(host.switchToHttp().getResponse(), body, error.getStatus());
+    const { httpAdapter } = this.adapterHost;
+    const response = host.switchToHttp().getResponse();
+    for (const [name, value] of Object.entries(error.headers)) {
+      httpAdapter.setHeader(response, name, value);
+    }
+    httpAdapter.reply(response, body, error.getStatus());
   }
 
   private toApiError(exception: unknown): ApiError {
     if (exception instanceof ApiError) return exception;
+
+    // Límite de tasa. ThrottlerGuard ya puso `Retry-After` en la respuesta.
+    if (exception instanceof ThrottlerException) {
+      return new ApiError(
+        'RATE_LIMITED',
+        'Demasiadas solicitudes. Espera unos segundos antes de reintentar.',
+      );
+    }
 
     // Nest convierte el SyntaxError de body-parser (JSON mal formado) y el
     // URIError de un parámetro con codificación inválida en BadRequestException.

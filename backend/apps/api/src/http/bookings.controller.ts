@@ -10,8 +10,10 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { BookingService } from '../inventory/booking.service';
 import { BookingCodeParamsDto, ConfirmBookingDto, TicketQueryDto } from './confirm-booking.dto';
+import { confirmThrottle } from './rate-limit';
 import { ClientId, IdempotencyKey } from './validation/headers';
 import { RejectBodyGuard } from './validation/reject-body.guard';
 import { RequireJsonGuard } from './validation/require-json.guard';
@@ -23,6 +25,7 @@ export class BookingsController {
 
   /** `201` con el boleto al crearlo; `200` con el mismo boleto al repetir la misma compra. */
   @Post('confirm')
+  @Throttle(confirmThrottle)
   @UseGuards(RequireJsonGuard)
   async confirm(
     @Body() body: ConfirmBookingDto,

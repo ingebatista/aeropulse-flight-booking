@@ -19,6 +19,7 @@ Cada carril escribe solo en su subsección, **antes** de su marcador de cierre. 
 - **19 de noviembre de 2026 (M2).** `npm run lint` encontró dos errores en mis pruebas nuevas: un `import type` sin usar en `hold.spec.ts` y una bandera booleana en `hold-deadlock.spec.ts` que ESLint marcó como asignación inútil. Quité el import y la bandera; la propia sentencia que cierra el ciclo prueba que PostgreSQL abortó el primer intento de la API, porque sin ese aborto no termina.
 - **19 de noviembre de 2026 (M3).** En una prueba de idempotencia inventé un número de tarjeta terminado en `4242` (`4000056655664242`) que no cumple Luhn; la API respondió `400` correctamente y la prueba falló. Lo verifiqué con un cálculo aparte y usé uno válido (`4000056655694242`).
 - **19 de noviembre de 2026 (M3).** Escribí una prueba de «bloqueo vencido aún `HELD` y después del barrido» que, en realidad, barría los dos asientos antes de confirmar, así que el nombre y un comentario no coincidían con lo que comprobaba. La reduje al caso «después del barrido»; el caso «aún `HELD`» ya lo cubre otra prueba.
+- **19 de noviembre de 2026 (M4).** Para silenciar el *logger* en la prueba de arranque en producción escribí `false as never`, un *cast* que ocultaba que el tipo del *helper* no admitía `false`. Corregí el tipo de `startApi` (`LoggerService | LogLevel[] | false`) y quité el *cast*.
 
 <!-- fin carril backend -->
 

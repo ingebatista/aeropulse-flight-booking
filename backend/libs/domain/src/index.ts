@@ -26,3 +26,9 @@ export { decideConfirmFallback, type ConfirmFallback } from './bookings/decision
 export { requestHash, type ConfirmFingerprint } from './bookings/fingerprint';
 export { isValidLuhn } from './bookings/luhn';
 export { isValidName, normalizeName, sameLastName } from './bookings/names';
+export {
+  allowedOrigins,
+  canChangeFlightStatus,
+  decideStatusChange,
+  type StatusChangeDecision,
+} from './flights/transitions';

@@ -74,6 +74,11 @@ export class ExpirySweeper implements OnApplicationBootstrap, OnModuleDestroy {
       ),
       this.logger,
     );
+    // Solo cuando hubo vencidos, para no llenar el log con una línea por segundo.
+    if (rows.length > 0) {
+      const seats = rows.map((row) => `${row.flight_id}/${row.seat_code}`).join(', ');
+      this.logger.log(`Barrido: ${rows.length} bloqueo(s) vencido(s) liberado(s): ${seats}`);
+    }
     return rows.length;
   }
 

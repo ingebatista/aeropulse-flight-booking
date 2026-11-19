@@ -20,6 +20,8 @@ export class ApiError extends HttpException {
     readonly fields?: ValidationErrorField[],
     /** Solo para casos que el catálogo aún no cubre (ver CCR-1); por defecto, el del código. */
     status: number = ERROR_HTTP_STATUS[code],
+    /** Cabeceras de la respuesta de error, por ejemplo `WWW-Authenticate` en un `401`. */
+    readonly headers: Readonly<Record<string, string>> = {},
   ) {
     const body: ErrorResponse = { error: { code, message, ...(fields ? { fields } : {}) } };
     super(body, status);

@@ -66,6 +66,25 @@ export class BookingService {
    * el mismo `EntityManager`, y los eventos se publican tras el commit.
    */
   async confirm(command: ConfirmCommand): Promise<ConfirmOutcome> {
+    // Solo vuelo y asiento: nunca cliente, token, clave, pasajero, tarjeta ni código de reserva.
+    const where = `${command.flightId}/${command.seatCode}`;
+    try {
+      const outcome = await this.confirmOnce(command);
+      this.logger.log(
+        outcome.created
+          ? `Reserva confirmada ${where}`
+          : `Confirmación repetida con la misma clave ${where}: mismo boleto`,
+      );
+      return outcome;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        this.logger.log(`Confirmación rechazada ${where}: ${error.code}`);
+      }
+      throw error;
+    }
+  }
+
+  private async confirmOnce(command: ConfirmCommand): Promise<ConfirmOutcome> {
     const hash = requestHash({ ...command, cardLast4: cardLast4(command.cardNumber) });
 
     // 1) ¿La clave ya produjo un boleto? Misma huella → 200; distinta → 422.
@@ -99,6 +118,13 @@ export class BookingService {
           this.book(manager, command, hash, charge, events),
         );
         publishAll(this.bus, events, this.logger);
+        for (const event of events) {
+          if (event.type === 'flight.status_changed') {
+            this.logger.log(
+              `Vuelo ${event.payload.flightId} agotado (versión ${event.payload.version})`,
+            );
+          }
+        }
         return { created: true, ticket };
       } catch (error) {
         if (

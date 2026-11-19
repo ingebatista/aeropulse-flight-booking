@@ -58,9 +58,17 @@ export class HoldService {
           this.acquire(manager, flightId, seatCode, clientId, events),
         );
         publishAll(this.bus, events, this.logger);
+        // Nunca se registran el clientId ni el holdToken.
+        this.logger.log(
+          `Bloqueo ${flightId}/${seatCode} (versión ${response.seat.version}; ` +
+            `liberados al cambiar de asiento: ${events.length - 1})`,
+        );
         return { created: true, response };
       } catch (error) {
         if (error instanceof NotAcquired) return this.holdFallback(flightId, seatCode, clientId);
+        if (error instanceof ApiError) {
+          this.logger.log(`Bloqueo rechazado ${flightId}/${seatCode}: ${error.code}`);
+        }
         if (attempt < MAX_ATTEMPTS && isRetryable(error)) {
           this.logger.warn(`Reintento del bloqueo tras ${describeRetry(error)}`);
           continue;
@@ -165,6 +173,9 @@ export class HoldService {
     if (decision === 'OWN_ACTIVE_HOLD' && lookup.seat) {
       // Mismo token, vencimiento y versión: el reintento no extiende el plazo ni emite eventos.
       const { holdToken, holdExpiresAt, version } = lookup.seat;
+      this.logger.log(
+        `Bloqueo repetido por su titular ${flightId}/${seatCode} (versión ${version})`,
+      );
       return {
         created: false,
         response: {
@@ -179,8 +190,9 @@ export class HoldService {
         },
       };
     }
-    if (decision === 'OWN_ACTIVE_HOLD') throw holdError('SEAT_UNAVAILABLE');
-    throw holdError(decision);
+    const error = holdError(decision === 'OWN_ACTIVE_HOLD' ? 'SEAT_UNAVAILABLE' : decision);
+    this.logger.log(`Bloqueo rechazado ${flightId}/${seatCode}: ${error.code}`);
+    throw error;
   }
 
   /**
@@ -214,6 +226,7 @@ export class HoldService {
         [seatChanged({ flightId, seatCode, status: 'AVAILABLE', version: row.version })],
         this.logger,
       );
+      this.logger.log(`Liberación ${flightId}/${seatCode} (versión ${row.version})`);
       return;
     }
 
@@ -224,11 +237,13 @@ export class HoldService {
       case 'SEAT_NOT_FOUND':
         throw holdError('SEAT_NOT_FOUND');
       case 'HOLD_NOT_OWNED':
+        this.logger.log(`Liberación rechazada ${flightId}/${seatCode}: HOLD_NOT_OWNED`);
         throw new ApiError(
           'HOLD_NOT_OWNED',
           'El asiento tiene un bloqueo vigente de otro titular.',
         );
       case 'NOTHING_TO_RELEASE':
+        this.logger.log(`Liberación sin cambios ${flightId}/${seatCode}: no había bloqueo vigente`);
         return;
     }
   }
