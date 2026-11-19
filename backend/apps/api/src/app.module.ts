@@ -2,6 +2,7 @@ import { postgresOptions } from '@backend/persistence';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventsModule } from './events/events.module';
 import { AdminHttpModule } from './http/admin-http.module';
 import { PublicHttpModule } from './http/public-http.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -20,6 +21,7 @@ import { RealtimeModule } from './realtime/realtime.module';
           password: config.get('APP_DB_PASSWORD') ?? 'app_dev',
         }),
     }),
+    EventsModule,
     PublicHttpModule,
     AdminHttpModule,
     RealtimeModule,

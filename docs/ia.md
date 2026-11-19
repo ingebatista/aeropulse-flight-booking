@@ -16,6 +16,7 @@ Cada carril escribe solo en su subsección, **antes** de su marcador de cierre. 
 - **19 de noviembre de 2026.** Mi prueba del pipe de validación destructuraba `code` y `fields` del objeto raíz en vez de `error`, y falló 11 casos aunque la implementación era correcta. Corregí el *helper* para leer `ErrorResponse.error`.
 - **19 de noviembre de 2026.** Planifiqué las pruebas HTTP con `@nestjs/testing`, que no está instalado y no se pueden agregar dependencias. Las reescribí con `NestFactory.create` y `fetch` nativo.
 - **19 de noviembre de 2026.** Esperaba que un estado de asiento desconocido violara `seats_status_check`, pero PostgreSQL informa `seats_hold_check` (se evalúan ambos `CHECK`). La prueba ahora exige solo el código `23514` en ese caso.
+- **19 de noviembre de 2026 (M2).** `npm run lint` encontró dos errores en mis pruebas nuevas: un `import type` sin usar en `hold.spec.ts` y una bandera booleana en `hold-deadlock.spec.ts` que ESLint marcó como asignación inútil. Quité el import y la bandera; la propia sentencia que cierra el ciclo prueba que PostgreSQL abortó el primer intento de la API, porque sin ese aborto no termina.
 
 <!-- fin carril backend -->
 
