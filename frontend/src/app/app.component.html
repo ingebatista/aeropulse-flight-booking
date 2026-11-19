@@ -11,14 +11,21 @@
         routerLinkActive="is-active"
         [routerLinkActiveOptions]="{ exact: true }"
         ariaCurrentWhenActive="page"
-        >Buscar vuelos</a
+        ><span class="site-header__icon" aria-hidden="true">⌕</span>Buscar vuelos</a
       >
       <a
         class="site-header__link"
         routerLink="/boletos"
         routerLinkActive="is-active"
         ariaCurrentWhenActive="page"
-        >Consultar boleto</a
+        ><span class="site-header__icon" aria-hidden="true">▤</span>Consultar boleto</a
+      >
+      <a
+        class="site-header__link"
+        routerLink="/estado-de-vuelos"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        ><span class="site-header__icon" aria-hidden="true">◉</span>Estado de vuelos</a
       >
     </nav>
   </div>

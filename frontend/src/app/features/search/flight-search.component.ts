@@ -2,17 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  type TemplateRef,
   computed,
+  contentChild,
   effect,
   inject,
   signal,
   untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   AIRPORT_CODES,
   DATE_PATTERN,
   type AirportCode,
+  type Flight,
   type FlightStatus,
   type SearchFlightsQuery,
 } from '@aeropulse/shared';
@@ -54,7 +58,7 @@ function offsetDay(date: string, offset: number): Date {
 
 @Component({
   selector: 'app-flight-search',
-  imports: [RouterLink],
+  imports: [NgTemplateOutlet, RouterLink],
   templateUrl: './flight-search.component.html',
   styleUrl: './flight-search.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,6 +70,10 @@ export class FlightSearchComponent {
   private wasDisconnected = false;
 
   protected readonly airportCodes = AIRPORT_CODES;
+  protected readonly statusView =
+    inject(ActivatedRoute, { optional: true })?.snapshot.data['statusView'] === true;
+  protected readonly flightActions =
+    contentChild<TemplateRef<{ $implicit: Flight }>>('flightActions');
   protected readonly airports = AIRPORTS;
   protected readonly flightStatuses: Record<FlightStatus, string> = {
     SCHEDULED: 'Programado',

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { requireAdminToken } from './features/admin/admin-session';
 
 export const routes: Routes = [
   {
@@ -8,6 +9,32 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/search/flight-search.component').then(
         ({ FlightSearchComponent }) => FlightSearchComponent,
+      ),
+  },
+  {
+    path: 'estado-de-vuelos',
+    title: 'Estado de vuelos | AeroPulse',
+    data: { statusView: true },
+    loadComponent: () =>
+      import('./features/search/flight-search.component').then(
+        ({ FlightSearchComponent }) => FlightSearchComponent,
+      ),
+  },
+  {
+    path: 'admin/acceso',
+    title: 'Acceso a administración | AeroPulse',
+    loadComponent: () =>
+      import('./features/admin/admin-access.component').then(
+        ({ AdminAccessComponent }) => AdminAccessComponent,
+      ),
+  },
+  {
+    path: 'admin',
+    title: 'Administración | AeroPulse',
+    canMatch: [requireAdminToken],
+    loadComponent: () =>
+      import('./features/admin/admin-flights.component').then(
+        ({ AdminFlightsComponent }) => AdminFlightsComponent,
       ),
   },
   {

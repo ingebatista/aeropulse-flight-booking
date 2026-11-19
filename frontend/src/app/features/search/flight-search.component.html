@@ -1,6 +1,8 @@
 <div class="search-page">
   <div class="page-heading">
-    <h1>Buscar vuelos</h1>
+    <h1>
+      {{ flightActions() ? 'Administración' : statusView ? 'Estado de vuelos' : 'Buscar vuelos' }}
+    </h1>
     <div class="connection" role="status">
       @switch (connection().status) {
         @case ('connected') {
@@ -21,6 +23,10 @@
       }
     </div>
   </div>
+  @if (statusView) {
+    <a class="admin-access-link" routerLink="/admin">Administración</a>
+  }
+  <ng-content select="[flight-search-tools]" />
 
   <form class="search-form" aria-label="Filtros de vuelos" (submit)="submit($event)" novalidate>
     <div class="fields">
@@ -161,7 +167,7 @@
     @if (flights.length) {
       <ul class="flight-list" role="list">
         @for (flight of flights; track flight.id) {
-          <li class="flight">
+          <li class="flight" [attr.tabindex]="flightActions() ? '-1' : null">
             <div class="flight__number">
               <span class="eyebrow">Vuelo</span>
               <strong>{{ flight.flightNumber }}</strong>
@@ -200,7 +206,12 @@
               <a [routerLink]="['/vuelos', flight.id, 'ocupacion']"
                 >Ver ocupación<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span></a
               >
-              @if (flight.status !== 'CANCELLED' && !flight.soldOut) {
+              @if (flightActions(); as actions) {
+                <ng-container
+                  [ngTemplateOutlet]="actions"
+                  [ngTemplateOutletContext]="{ $implicit: flight }"
+                />
+              } @else if (!statusView && flight.status !== 'CANCELLED' && !flight.soldOut) {
                 <a class="flight__choose" [routerLink]="['/vuelos', flight.id, 'asientos']"
                   >Elegir asiento<span class="sr-only">
                     en el vuelo {{ flight.flightNumber }}</span

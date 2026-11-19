@@ -21,6 +21,14 @@
   margin-bottom: 18px;
 }
 
+.admin-access-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--color-primary-hover);
+}
+
 h1,
 h2,
 h3,

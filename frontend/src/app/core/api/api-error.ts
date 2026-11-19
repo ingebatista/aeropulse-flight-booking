@@ -27,6 +27,7 @@ export class ApiError extends Error {
   constructor(
     readonly code: FrontendErrorCode,
     readonly status?: number,
+    readonly retryAfterSeconds?: number,
   ) {
     super(messages[code]);
   }
@@ -39,9 +40,12 @@ export class ApiError extends Error {
     const detail = body && typeof body === 'object' && 'error' in body ? body.error : null;
     const code = detail && typeof detail === 'object' && 'code' in detail ? detail.code : null;
     const knownCode = ERROR_CODES.find((candidate) => candidate === code);
+    const retryAfter = knownCode === 'RATE_LIMITED' ? error.headers.get('Retry-After') : null;
+    const seconds = retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : undefined;
     return new ApiError(
       knownCode ?? (error.status === 0 ? 'NETWORK_ERROR' : 'INTERNAL_ERROR'),
       error.status,
+      Number.isSafeInteger(seconds) ? seconds : undefined,
     );
   }
 }

@@ -1,0 +1,58 @@
+<app-flight-search>
+  <div class="admin-tools" flight-search-tools>
+    <button class="secondary" type="button" (click)="logout()">Cerrar sesión</button>
+    @if (error()) {
+      <p class="booking-alert" role="alert">{{ error() }}</p>
+    }
+    <div role="status">
+      @if (pending()) {
+        <p>Actualizando el estado…</p>
+      } @else if (success()) {
+        <p>{{ success() }}</p>
+      }
+    </div>
+  </div>
+
+  <ng-template #flightActions let-flight>
+    @if (flight.status === 'SCHEDULED') {
+      <button
+        #delay
+        class="secondary"
+        type="button"
+        [attr.aria-disabled]="pending()"
+        (click)="change(flight, 'DELAYED', delay)"
+      >
+        Marcar retraso<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span>
+      </button>
+    }
+    @if (flight.status !== 'CANCELLED') {
+      <button
+        #cancel
+        class="secondary danger"
+        type="button"
+        [attr.aria-disabled]="pending()"
+        (click)="askCancellation(flight, cancel, dialog)"
+      >
+        Cancelar vuelo<span class="sr-only"> {{ flight.flightNumber }}</span>
+      </button>
+    }
+  </ng-template>
+</app-flight-search>
+
+<dialog
+  #dialog
+  aria-labelledby="cancel-title"
+  aria-describedby="cancel-message"
+  (close)="closeDialog()"
+>
+  <h2 id="cancel-title">Cancelar vuelo {{ cancellation()?.flight?.flightNumber }}</h2>
+  <p id="cancel-message">
+    El vuelo quedará cancelado y se cerrarán las nuevas reservas. Esta acción es definitiva.
+  </p>
+  <div class="dialog-actions">
+    <button class="secondary" type="button" autofocus (click)="dialog.close()">Volver</button>
+    <button class="confirm-danger" type="button" (click)="confirmCancellation(dialog)">
+      Confirmar cancelación
+    </button>
+  </div>
+</dialog>

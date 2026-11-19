@@ -151,3 +151,19 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 
 - La validación de compra y consulta contra el backend sigue pendiente de la integración de M2 y M3 en `develop`. El adaptador `fake` aporta pre-evidencia para F4.
 - No se detectaron desviaciones del contrato en los casos probados.
+
+### F5 · 2026-11-19
+
+- Administración se carga bajo demanda y conserva el token en memoria. El panel reutiliza el listado, permite retrasar y cancelar vuelos y aplica las respuestas y eventos por versión.
+- La navegación pública incorpora «Estado de vuelos». A 360 px la barra inferior reserva espacio para los controles de cada vista.
+
+  | Comando | Salida |
+  | --- | --- |
+  | `npm run build` | `webpack 5.106.2 compiled successfully` para API y migraciones. Angular generó los *chunks* diferidos de acceso y administración. |
+  | `npm run build -w frontend -- --configuration fake` | `Application bundle generation complete. [3.068 seconds]` |
+  | `npm test -w frontend` | `Test Files  8 passed (8)` · `Tests  34 passed (34)` |
+  | `npm run lint` | `eslint .`, código de salida `0`. |
+  | Chrome en modo `fake` | Navegación comprobada a 360 y 1366 px. Enter retrasó el vuelo y abrió el diálogo de cancelación. El diálogo enfocó «Volver», Escape devolvió el foco al botón y la confirmación lo llevó a la fila. El listado público mostró «Cancelado». También se verificaron el estado vacío y la validación del destino. |
+  | Lighthouse, modo `snapshot` | `Accessibility: 100` sin fallos de accesibilidad en búsqueda, mapa, ocupación, compra, consulta de boleto, acceso, diálogo de cancelación y panel. |
+
+- El `PATCH` real y la sincronización entre dos pestañas quedan pendientes de M4 y sus dependencias en `develop`. Los resultados con `fake` son pre-evidencia para F5.

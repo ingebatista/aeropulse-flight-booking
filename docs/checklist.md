@@ -230,7 +230,7 @@ Hasta que llegue cada hito real, el frontend trabaja contra un adaptador falso e
 - [x] **[I]** `@front` `F3` Implementar el mapa de asientos (HU2): selección con bloqueo, asiento propio resaltado, cuenta regresiva con `holdExpiresAt` y `serverNow`, recuperación con `myHold` y reversión ante `409`. Verificado con el adaptador `fake`; integración real pendiente de M2. [Registro F3](handoff/frontend.md#f3--2026-11-19).
 - [x] **[I]** `@front` `F3` Implementar el dashboard (HU4) con los contadores `computed()` del mismo almacén que pinta el mapa. Verificado con el adaptador `fake`. [Registro F3](handoff/frontend.md#f3--2026-11-19).
 - [x] **[I]** `@front` `F4` Implementar el checkout (HU3): tarjetas de prueba visibles, una `Idempotency-Key` por intento de compra, boleto con código y consulta por código y apellido. Verificado con el adaptador `fake` y 29 pruebas del frontend. La integración real queda pendiente de M2 y M3. [Registro F4](handoff/frontend.md#f4--2026-11-19).
-- [ ] **[I]** `@front` `F5` Implementar el área de administración en carga diferida, con *guard* y cambio de estado de vuelos.
+- [x] **[I]** `@front` `F5` Implementar el área de administración en carga diferida, con *guard* y cambio de estado de vuelos. Verificado con `fake` y 34 pruebas del frontend. La integración real queda pendiente de M4. [Registro F5](handoff/frontend.md#f5--2026-11-19).
 - [ ] **[I]** `@front` `F2` a `F5` Apagar el adaptador falso por capacidad cuando el hito real llega a `develop`: `search` (M1), `seats` y `realtime` (M2), `booking` (M3) y `admin` (M4). Evidencia: _(lista de capacidades reales en el seguimiento del carril)_
 
 ### 6.C Verificación del flujo (carril `@integ`)
@@ -254,8 +254,8 @@ Empieza cuando M4 y F5 están en `develop`.
 
 ## 8. Calidad y entrega
 
-- [ ] **[V]** `@front` `F5` Revisar navegación por teclado, etiquetas, foco visible, contraste y estados accesibles.
-- [ ] **[V]** `@front` `F5` Revisar estados de carga, vacío y error, así como la adaptación a pantallas pequeñas (desde 360 px).
+- [x] **[V]** `@front` `F5` Revisar navegación por teclado, etiquetas, foco visible, contraste y estados accesibles. Se verificó el foco del diálogo en Chrome y Lighthouse dio 100 en accesibilidad en las ocho vistas y estados auditados. [Registro F5](handoff/frontend.md#f5--2026-11-19).
+- [x] **[V]** `@front` `F5` Revisar estados de carga, vacío y error, así como la adaptación a pantallas pequeñas (desde 360 px). Verificado con las pruebas del frontend y la revisión en Chrome a 360 y 1366 px. [Registro F5](handoff/frontend.md#f5--2026-11-19).
 - [ ] **[I]** `@integ` `M5` Disponer de un comando o pipeline único que compile y ejecute todas las pruebas, incluidas las de concurrencia. Propuesta: un script `verify` en la raíz con `build`, `lint` y `test`.
 - [ ] **[V]** `@integ` `M5` Ejecutar ese comando y confirmar que pasa.
 - [ ] **[V]** `@integ` `M5` Contrastar `docs/architecture.md` con el comportamiento realmente implementado y corregir las diferencias, usando los cambios que cada carril anotó en su seguimiento.
