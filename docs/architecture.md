@@ -238,7 +238,7 @@ La confirmación usa `READ COMMITTED`. El conteo de asientos pendientes se ejecu
 
 **Una transacción, un solo `EntityManager`.** Toda escritura dentro de la confirmación usa el `EntityManager` que entrega `dataSource.transaction()`. Un repositorio inyectado con `@InjectRepository` usa el *manager* por defecto y escribe **fuera** de la transacción: si algo falla después, el *rollback* no lo deshace. Por eso los métodos de escritura reciben el `manager` como parámetro explícito y una prueba de *rollback* lo vigila.
 
-**Datos de pago.** No se guarda el número de tarjeta; la reserva guarda `card_last4`, `card_brand` y la referencia del simulador. Es minimización de datos (la regla estricta de PCI-DSS es no guardar el CVV tras la autorización). Nunca se registra el cuerpo de la petición de pago. El número viaja hasta la API porque el pago es ficticio; con un proveedor real, el número nunca tocaría el servidor propio (campos alojados o tokenización).
+**Datos de pago.** No se guarda el número de tarjeta; la reserva guarda `card_last4`, `card_brand` y la referencia del simulador. La marca se deduce del prefijo: `VISA` (4), `MASTERCARD` (51–55 y 2221–2720), `AMEX` (34 y 37) u `OTHER`. La referencia tiene el formato `SIM-<uuid>` (40 caracteres: 4 + 36), que cabe en `payment_reference varchar(40)`. Es minimización de datos (la regla estricta de PCI-DSS es no guardar el CVV tras la autorización). Nunca se registra el cuerpo de la petición de pago. El número viaja hasta la API porque el pago es ficticio; con un proveedor real, el número nunca tocaría el servidor propio (campos alojados o tokenización).
 
 | Tarjeta termina en | Resultado |
 | --- | --- |
@@ -348,7 +348,7 @@ sequenceDiagram
 | Cliente anónimo | `clientId` UUID en `sessionStorage` y estable al recargar. Para probar dos clientes, se abren dos pestañas independientes desde la barra de direcciones o dos contextos de navegador. Es un secreto de portador y se envía como `X-Client-Id` (REST) y `auth.clientId` (Socket.IO). |
 | Titularidad del bloqueo | `holdToken` aleatorio, se usa junto al identificador del titular para confirmar o liberar |
 | Administración | `AdminTokenGuard` con `ADMIN_TOKEN` y comparación mediante `timingSafeEqual`. En desarrollo el valor por defecto es `aeropulse-admin-dev`. En producción (`NODE_ENV=production`), el arranque exige un token configurado distinto del valor de desarrollo. |
-| Límite de tasa | `@nestjs/throttler` global, con un límite más estricto en `hold`, confirmación y `/api/admin` |
+| Límite de tasa | `@nestjs/throttler` global, con un límite más estricto en `hold`, confirmación y `/api/admin`. El contador es **por ruta y por IP** (ventana de 60 s; `trust proxy` toma la IP real detrás de Nginx), no un total compartido entre rutas. Valores por defecto, por minuto: global 120, `hold` 30, confirmación 10 y `/api/admin` 30; se ajustan con `RATE_LIMIT_GLOBAL`, `RATE_LIMIT_HOLD`, `RATE_LIMIT_CONFIRM` y `RATE_LIMIT_ADMIN`. Al superarlo responde `429 RATE_LIMITED` con `Retry-After`. El límite de `/api/admin` se aplica antes de autenticar. El *gateway* de Socket.IO no se limita. |
 | Cabeceras | `helmet` |
 | WebSocket | `join` solo acepta `search` y `flight:{uuid}`; cualquier otra sala se rechaza |
 | Validación | `ValidationPipe` con `whitelist` y `forbidNonWhitelisted`; Luhn en el DTO de pago |

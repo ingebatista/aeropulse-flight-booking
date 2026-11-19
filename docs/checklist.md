@@ -262,7 +262,7 @@ Empieza cuando M4 y F5 están en `develop`.
 
 - [x] **[V]** `@front` `F5` Revisar navegación por teclado, etiquetas, foco visible, contraste y estados accesibles. Se verificó el foco del diálogo en Chrome y Lighthouse dio 100 en accesibilidad en las ocho vistas y estados auditados. [Registro F5](handoff/frontend.md#f5--2026-11-19).
 - [x] **[V]** `@front` `F5` Revisar estados de carga, vacío y error, así como la adaptación a pantallas pequeñas (desde 360 px). Verificado con las pruebas del frontend y la revisión en Chrome a 360 y 1366 px. [Registro F5](handoff/frontend.md#f5--2026-11-19).
-- [ ] **[I]** `@integ` `M5` Disponer de un comando o pipeline único que compile y ejecute todas las pruebas, incluidas las de concurrencia. Propuesta: un script `verify` en la raíz con `build`, `lint` y `test`.
+- [x] **[I]** `@integ` `M5` Disponer de un comando o pipeline único que compile y ejecute todas las pruebas, incluidas las de concurrencia. Script `verify` en la raíz (`package.json`): `npm run build && npm run lint && npm run format:check && npm test`; añadido en el commit `33c81bf`. Falta ejecutarlo (tarea siguiente).
 - [ ] **[V]** `@integ` `M5` Ejecutar ese comando y confirmar que pasa.
 - [ ] **[V]** `@integ` `M5` Contrastar `docs/architecture.md` con el comportamiento realmente implementado y corregir las diferencias, usando los cambios que cada carril anotó en su seguimiento.
 - [ ] **[V]** `@integ` `M5` Contrastar la lista de requisitos de la sección 0 con lo entregado: cada requisito cubierto, con su evidencia, o declarado como limitación.

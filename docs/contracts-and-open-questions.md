@@ -74,7 +74,7 @@ Ejemplo de cuerpo para confirmar, con una tarjeta ficticia y todos los campos ob
 
 ## Catálogo de errores
 
-HTTP devuelve el estado correspondiente y un objeto `{ "error": { "code": "...", "message": "..." } }`. El frontend toma decisiones por `code`. `VALIDATION_ERROR` agrega `fields` con entradas `{ field, reason }`. `reason` es uno de `REQUIRED`, `INVALID`, `UNEXPECTED` o `DUPLICATE`. Los campos se identifican por nombre, por ejemplo `query.date` o `body.passenger.lastName`, y el error nunca repite el valor recibido.
+HTTP devuelve el estado correspondiente y un objeto `{ "error": { "code": "...", "message": "..." } }`. El frontend toma decisiones por `code`. `VALIDATION_ERROR` agrega `fields` con entradas `{ field, reason }`. `reason` es uno de `REQUIRED`, `INVALID`, `UNEXPECTED` o `DUPLICATE`. Los campos se identifican por nombre con un prefijo según su origen: `query.*`, `param.*`, `body.*` y `header.<nombre>`. Los encabezados se nombran en minúscula, por ejemplo `header.x-client-id` o `header.x-hold-token`. Ejemplos: `query.date` o `body.passenger.lastName`. El error nunca repite el valor recibido.
 
 ```json
 {
