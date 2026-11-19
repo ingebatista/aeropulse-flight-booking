@@ -30,6 +30,27 @@ Las siguientes decisiones están confirmadas en la sección 3.4 de arquitectura;
 | Vuelo de demostración | El tercer horario de `BOG → MDE` tiene seis asientos: filas 1 y 2, letras A a C. |
 | Tarifa | Una tarifa por vuelo, expresada en pesos colombianos; se copia a la reserva al confirmar. |
 
+### Tabla de horarios y tarifas
+
+Son diez horarios fijos en las seis rutas. Cada número de vuelo se reutiliza cada día de la ventana de fechas; la clave natural de un vuelo concreto es `(flight_number, departure_at)` ([persistencia](persistence.md#migraciones-y-responsabilidades)). Los horarios y las llegadas están en UTC; la llegada es la salida más la duración.
+
+| Ruta | Vuelo | Salida (UTC) | Duración | Llegada (UTC) | Tarifa (COP) | Asientos |
+| --- | --- | --- | --- | --- | --- | --- |
+| `BOG → MDE` | `AP101` | 11:00 | 60 min | 12:00 | 289.000 | 24 |
+| `BOG → MDE` | `AP103` | 16:30 | 60 min | 17:30 | 289.000 | 24 |
+| `BOG → MDE` | `AP105` (demostración) | 22:30 | 60 min | 23:30 | 199.000 | 6 |
+| `MDE → BOG` | `AP102` | 12:30 | 60 min | 13:30 | 289.000 | 24 |
+| `MDE → BOG` | `AP104` | 20:00 | 60 min | 21:00 | 289.000 | 24 |
+| `BOG → BAQ` | `AP201` | 13:00 | 95 min | 14:35 | 349.000 | 24 |
+| `BOG → BAQ` | `AP203` | 21:00 | 95 min | 22:35 | 349.000 | 24 |
+| `BAQ → BOG` | `AP202` | 15:30 | 95 min | 17:05 | 349.000 | 24 |
+| `MDE → BAQ` | `AP301` | 14:00 | 85 min | 15:25 | 319.000 | 24 |
+| `BAQ → MDE` | `AP302` | 18:30 | 85 min | 19:55 | 319.000 | 24 |
+
+- La serie del número identifica el par de aeropuertos: `AP1xx` para `BOG`–`MDE`, `AP2xx` para `BOG`–`BAQ` y `AP3xx` para `MDE`–`BAQ`.
+- La tarifa es la misma en todos los horarios de una ruta, salvo el vuelo de demostración `AP105`, que cuesta 199.000 COP y tiene solo seis asientos (filas 1 y 2, letras A a C) para poder mostrar «Agotado» con pocas reservas.
+- Los datos viven en el catálogo del *seed* (`backend/libs/persistence/src/seed/catalog.ts`). Si cambian, deben actualizarse allí y en esta tabla.
+
 La búsqueda por fecha y la visualización de horarios usan UTC. Si el seed se ejecuta el último día del mes, solo genera vuelos para ese día: es una limitación conocida de esta decisión.
 
 ## Búsqueda y estado de los vuelos

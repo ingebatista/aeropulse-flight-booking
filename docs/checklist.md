@@ -175,7 +175,13 @@ Resultado esperado: ninguna pregunta abierta que bloquee la implementación.
 - [x] **[I]** `@integ` `M0` Congelar `packages/shared` v1 a partir de [los contratos](contracts-and-open-questions.md): DTOs, enums de estado, códigos de error, aeropuertos del catálogo, `ServerToClientEvents` y `ClientToServerEvents`. Debe compilar en ESM y CommonJS (`npm run build:shared`). El paquete está integrado en `develop` desde `4516cc5`. `npm run build:shared` pasó y ESM y CommonJS tienen las mismas 23 exportaciones; 15 códigos de error iguales a los del contrato. El humano dio el visto bueno y congeló el contrato en el estado actual de `develop`. Evidencia: etiqueta `contracts-v1` sobre `bdd757f` (`packages/shared` no cambió desde `4516cc5`).
 - [x] **[I]** `@integ` `M0` Instalar en un solo commit las dependencias de backend previstas (`@nestjs/throttler`, `helmet`, `class-validator` y `class-transformer`). `4516cc5` agregó las cuatro dependencias a `backend/package.json` y actualizó `package-lock.json`. Ambos archivos están en `develop` y se verificaron en la compilación y las pruebas registradas arriba.
 - [x] **[I]** `@integ` `M0` Integrar en `develop` los commits de preparación. `4516cc5` incorporó los contratos, las dependencias y el reparto de carriles. `bdd757f` integró la validación del diseño y el arranque local de la demo.
-- [ ] **[V]** `@integ` `M0` Crear los dos worktrees (ver «Actores y carpetas») desde `develop` una vez congelado el contrato. `git worktree list` solo muestra el checkout de `develop`. Falta crear `lane/backend` y `lane/frontend` y ejecutar `npm ci` y `npm run build` en cada uno.
+- [x] **[V]** `@integ` `M0` Crear los dos worktrees (ver «Actores y carpetas») desde `develop` una vez congelado el contrato. Evidencia (2026-11-18): ambas ramas nacen de `b7b4611`, que incluye la etiqueta `contracts-v1` (`git describe --tags` devuelve `contracts-v1-1-gb7b4611` en cada una) y los archivos de seguimiento. `npm ci` (1143 paquetes) y `npm run build` terminaron con código 0 en ambos worktrees, con `packages/shared/dist/cjs`, `backend/dist/apps/{api,migrate}` y `frontend/dist` generados, y los dos árboles quedaron limpios. `npm audit --omit=dev` en `develop` reporta 0 vulnerabilidades.
+
+  ```text
+  B:/PROYECTOS/DAVIVIENDA/aeropulse-flight-booking b7b4611 [develop]
+  B:/PROYECTOS/DAVIVIENDA/worktrees/lane-backend   b7b4611 [lane/backend]
+  B:/PROYECTOS/DAVIVIENDA/worktrees/lane-frontend  b7b4611 [lane/frontend]
+  ```
 
 ## 5. Persistencia y concurrencia (carril `@back`)
 
