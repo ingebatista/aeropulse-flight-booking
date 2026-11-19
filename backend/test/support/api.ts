@@ -1,4 +1,4 @@
-import type { HoldResponse, SeatEvent } from '@aeropulse/shared';
+import type { HoldResponse, SeatEvent, Ticket } from '@aeropulse/shared';
 import { type DomainEvent, EventBus } from '@backend/events';
 import { runSeed } from '@backend/persistence';
 import { NestFactory } from '@nestjs/core';
@@ -219,3 +219,65 @@ export async function waitFor(check: () => Promise<boolean>, timeoutMs = 5_000) 
 }
 
 export const newClientId = (): string => randomUUID();
+
+export const APPROVED_CARD = '4242424242424242';
+export const DECLINED_CARD = '4000000000000002';
+
+export interface ConfirmInput {
+  flightId: string;
+  seatCode: string;
+  clientId: string;
+  holdToken: string;
+  idempotencyKey?: string;
+  firstName?: string;
+  lastName?: string;
+  cardNumber?: string;
+}
+
+/** `POST /api/bookings/confirm` con los valores por defecto de una compra aprobada. */
+export function confirmBooking(api: TestApi, input: ConfirmInput): Promise<ApiResult<Ticket>> {
+  return fetch(`${api.baseUrl}/api/bookings/confirm`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-client-id': input.clientId,
+      'idempotency-key': input.idempotencyKey ?? randomUUID(),
+    },
+    body: JSON.stringify({
+      flightId: input.flightId,
+      seatCode: input.seatCode,
+      holdToken: input.holdToken,
+      passenger: { firstName: input.firstName ?? 'Laura', lastName: input.lastName ?? 'Gómez' },
+      payment: { cardNumber: input.cardNumber ?? APPROVED_CARD },
+    }),
+  }).then((r) => send<Ticket>(r));
+}
+
+/** Bloquea un asiento y devuelve lo necesario para confirmarlo. */
+export async function holdFor(
+  api: TestApi,
+  flightId: string,
+  seatCode: string,
+  clientId = newClientId(),
+): Promise<ConfirmInput> {
+  const { status, body } = await holdSeat(api, flightId, seatCode, clientId);
+  if (status !== 201) throw new Error(`hold ${seatCode} respondió ${status}`);
+  return { flightId, seatCode, clientId, holdToken: body.hold.holdToken };
+}
+
+export function getTicket(
+  api: TestApi,
+  code: string,
+  lastName: string,
+): Promise<ApiResult<Ticket>> {
+  const query = new URLSearchParams({ lastName });
+  return fetch(`${api.baseUrl}/api/bookings/${code}?${query}`).then((r) => send<Ticket>(r));
+}
+
+export async function countBookings(owner: DataSource, flightId: string): Promise<number> {
+  const rows: Array<{ count: number }> = await owner.query(
+    'SELECT count(*)::int AS count FROM bookings WHERE flight_id = $1',
+    [flightId],
+  );
+  return rows[0].count;
+}

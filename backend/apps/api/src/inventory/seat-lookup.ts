@@ -9,6 +9,7 @@ interface LookupRow {
   hold_token: string | null;
   hold_expires_at: Date | null;
   version: number | null;
+  fare_cop: number | null;
   now: Date;
 }
 
@@ -22,10 +23,10 @@ export async function lookupSeat(
   dataSource: DataSource,
   flightId: string,
   seatCode: string,
-): Promise<{ lookup: SeatLookup; now: Date }> {
+): Promise<{ lookup: SeatLookup; now: Date; fareCop: number | null }> {
   const rows: LookupRow[] = await dataSource.query(
-    `SELECT f.status AS flight_status, s.status AS seat_status, s.held_by, s.hold_token,
-            s.hold_expires_at, s.version, now() AS now
+    `SELECT f.status AS flight_status, f.fare_cop, s.status AS seat_status, s.held_by,
+            s.hold_token, s.hold_expires_at, s.version, now() AS now
      FROM (SELECT 1) AS one
      LEFT JOIN flights f ON f.id = $1
      LEFT JOIN seats s ON s.flight_id = f.id AND s.seat_code = $2`,
@@ -35,6 +36,7 @@ export async function lookupSeat(
 
   return {
     now: row.now,
+    fareCop: row.fare_cop,
     lookup: {
       flightStatus: row.flight_status,
       seat:

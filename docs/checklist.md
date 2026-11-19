@@ -205,10 +205,10 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 
 **M3 · Confirmación y pago**
 
-- [ ] **[I]** `@back` `M3` Implementar en `libs/domain` la generación del código de reserva y la validación de Luhn, con pruebas unitarias.
-- [ ] **[V]** `@back` `M3` Verificar que la confirmación y sus escrituras son atómicas y que un error provoca *rollback* (asiento `HELD` y sin reserva). Evidencia: _(test)_
-- [ ] **[V]** `@back` `M3` Probar los reintentos y la idempotencia de la confirmación (misma clave, mismo boleto; 20 peticiones simultáneas, una reserva), la titularidad y el agotado con dos confirmaciones simultáneas de los dos últimos asientos (§2). Evidencia: _(test)_
-- [ ] **[V]** `@back` `M3` Verificar que el servidor rechaza la confirmación en vuelos cancelados (§2). Evidencia: _(test)_
+- [x] **[I]** `@back` `M3` Implementar en `libs/domain` la generación del código de reserva y la validación de Luhn, con pruebas unitarias. Evidencia (2026-11-19, `lane/backend`): `backend/libs/domain/src/bookings` (`generateBookingCode`, `isValidLuhn`, huella y nombres) con `bookings.spec.ts` (37 pruebas) y `simulated-payment-gateway.spec.ts`.
+- [x] **[V]** `@back` `M3` Verificar que la confirmación y sus escrituras son atómicas y que un error provoca *rollback* (asiento `HELD` y sin reserva). Evidencia: `backend/test/bookings/confirm-rollback.spec.ts` (un *trigger* hace fallar el `INSERT` de la reserva: `500`, asiento `HELD` en la misma versión, sin reserva ni eventos; después la misma clave confirma).
+- [x] **[V]** `@back` `M3` Probar los reintentos y la idempotencia de la confirmación (misma clave, mismo boleto; 20 peticiones simultáneas, una reserva), la titularidad y el agotado con dos confirmaciones simultáneas de los dos últimos asientos (§2). Evidencia: `confirm-concurrency.spec.ts` (20 simultáneas con la misma clave: 1 × `201`, 19 × `200`, una reserva; misma clave en dos asientos: `201` + `422`), `confirm.spec.ts` (reintentos, `402`, `409 HOLD_INACTIVE`) y `sold-out.spec.ts` (dos últimos asientos en paralelo: `sold_out` una sola vez y un `flight.status_changed`).
+- [x] **[V]** `@back` `M3` Verificar que el servidor rechaza la confirmación en vuelos cancelados (§2). Evidencia: `backend/test/bookings/confirm-cancelled.spec.ts` (`409 FLIGHT_CANCELLED` y carrera determinista con la cancelación sin confirmar).
 
 **M4 · Registros**
 
@@ -220,7 +220,7 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 
 - [x] **[I]** `@back` `M1` Implementar la validación de entradas y el catálogo de errores de §4 (`ValidationPipe` estricta, forma `{ error: { code, message } }`, `fields` en `VALIDATION_ERROR`) y `GET /api/flights`. [Especificación de contratos](contracts-and-open-questions.md). Evidencia: `backend/apps/api/src/http` (`ApiValidationPipe`, `ApiExceptionFilter`, `FlightsController`) y `backend/test/api/flights-search.spec.ts`. **Pendiente:** el `404` de ruta inexistente usa `INTERNAL_ERROR` hasta resolver CCR-1.
 - [x] **[I]** `@back` `M2` Implementar `EventBus` (puerto y adaptador en proceso), `POST` y `DELETE` del bloqueo, el barrido de 1 s y el *gateway* de Socket.IO (`join`, instantánea con `myHold` y `seat.changed`). Evidencia: `HoldService`, `ExpirySweeper`, `SnapshotService`, `SeatsController`, `RealtimeGateway` y `test/realtime/realtime.spec.ts` (9 pruebas con `socket.io-client`; ver CCR-2). `npm test -w backend`: 137 pruebas pasan.
-- [ ] **[I]** `@back` `M3` Implementar `PaymentGateway` con su simulador, `POST /api/bookings/confirm`, `GET /api/bookings/{code}` y el evento `flight.status_changed` por agotado.
+- [x] **[I]** `@back` `M3` Implementar `PaymentGateway` con su simulador, `POST /api/bookings/confirm`, `GET /api/bookings/{code}` y el evento `flight.status_changed` por agotado. Evidencia: `PaymentGateway`/`SimulatedPaymentGateway`, `BookingService`, `BookingsController` y `test/bookings/*.spec.ts` (incluido `ticket.spec.ts`). `npm test -w backend`: 205 pruebas pasan.
 - [ ] **[I]** `@back` `M4` Implementar `PATCH /api/admin/flights/{flightId}/status` con `AdminTokenGuard`, además de límite de tasa, `helmet` y el arranque seguro en producción.
 - [ ] **[V]** `@back` `M4` Con un cliente `socket.io-client` real: `join` devuelve instantánea y `myHold`; un evento anterior al *ack* se funde sin perderse; el `PATCH` de administración llega a la sala `search`. Evidencia: _(test)_
 

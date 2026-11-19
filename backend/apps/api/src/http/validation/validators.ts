@@ -1,4 +1,5 @@
 import { DATE_PATTERN } from '@aeropulse/shared';
+import { isValidLuhn, isValidName } from '@backend/domain';
 import { registerDecorator, type ValidationOptions } from 'class-validator';
 
 /** Fecha real `YYYY-MM-DD` (rechaza `2026-02-30`). El formato lo fija `DATE_PATTERN`. */
@@ -35,5 +36,29 @@ export function IsDifferentFrom(other: string, options?: ValidationOptions): Pro
         validate: (value: unknown, args) =>
           value !== (args?.object as Record<string, unknown>)[other],
       },
+    });
+}
+
+/** Nombre del pasajero: 1 a 60 caracteres tras NFC y `trim`, sin caracteres de control. */
+export function IsPassengerName(options?: ValidationOptions): PropertyDecorator {
+  return (target, propertyName) =>
+    registerDecorator({
+      name: 'isPassengerName',
+      target: target.constructor,
+      propertyName: propertyName as string,
+      options,
+      validator: { validate: isValidName },
+    });
+}
+
+/** Número de tarjeta válido según Luhn (el formato lo fija `CARD_NUMBER_PATTERN`). */
+export function IsLuhn(options?: ValidationOptions): PropertyDecorator {
+  return (target, propertyName) =>
+    registerDecorator({
+      name: 'isLuhn',
+      target: target.constructor,
+      propertyName: propertyName as string,
+      options,
+      validator: { validate: (value: unknown) => typeof value === 'string' && isValidLuhn(value) },
     });
 }

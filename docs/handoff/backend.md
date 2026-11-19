@@ -123,3 +123,39 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 - Cambio pedido: declarar `socket.io-client` (misma versión que el frontend, 4.8) como `devDependency` de `backend/package.json` y actualizar `package-lock.json`. No toca `packages/shared`, pero sí el *lockfile*, que es del integrador.
 - Motivo y regla afectada: `test/realtime/realtime.spec.ts` lo importa desde el `node_modules` de la raíz, donde hoy llega solo porque lo instala el frontend (decisión del humano del 2026-11-19 para no bloquear M2). Sin declararlo, la prueba depende del *hoisting* de npm.
 - Tarea bloqueada: ninguna; la prueba ya pasa. También la usará la verificación de §6.A M4.
+
+### M3 · 2026-11-19
+- Hecho:
+  - `libs/domain/src/bookings`: `isValidLuhn`, `generateBookingCode` (6 caracteres del alfabeto del contrato, `byte % 32` sin sesgo) y `normalizeBookingCode`, `cardBrand`/`cardLast4`, `normalizeName`/`isValidName`/`sameLastName` (NFC, recorte, sin caracteres de control y acentos conservados), `requestHash` (SHA-256 de la huella de arch §4.4) y `decideConfirmFallback`.
+  - `apps/api/src/payments`: puerto `PaymentGateway` y `SimulatedPaymentGateway`, que aprueba una tarjeta válida terminada en `4242`, rechaza el resto y nunca guarda ni registra el número.
+  - `BookingService.confirm`:
+    - replay por `Idempotency-Key` (`200` con la misma huella y `422` con otra);
+    - precomprobación y pago fuera de la transacción (`402` no guarda nada);
+    - transacción con `UPDATE` `HELD → BOOKED` condicional, `FOR UPDATE` del vuelo después del asiento, `INSERT` de la reserva, conteo de asientos pendientes y `sold_out` con su versión;
+    - eventos tras el commit;
+    - ante 0 filas o `23505` de la clave, *rollback* y nueva consulta de la clave;
+    - ante colisión del código, reintento de la transacción completa (hasta 3).
+  - `BookingService.findTicket`: un código inexistente o un apellido distinto responden igual, `404 BOOKING_NOT_FOUND`.
+  - HTTP:
+    - `POST /api/bookings/confirm` usa `ConfirmBookingDto` con `PassengerDto` y `PaymentDto` anidados, `@IdempotencyKey()` y `RequireJsonGuard` (`415`);
+    - `GET /api/bookings/:code?lastName=` usa `RejectBodyGuard`;
+    - `ApiValidationPipe` responde `body` `REQUIRED`/`INVALID` ante un cuerpo ausente o que no es un objeto.
+- Comando y salida (worktree `lane-backend`, 2026-11-19):
+  - `npm run build -w backend` → `webpack compiled successfully` (api y migrate).
+  - `npm test -w backend -- --runInBand` → `Test Suites: 24 passed, 24 total · Tests: 205 passed, 205 total`.
+  - `npm run lint` → 0 errores. `prettier --check "backend/**/*.ts"` → `All matched files use Prettier code style!`.
+- Evidencia por tarea de la checklist (§5 M3), todo contra PostgreSQL 17 real con el rol `app`:
+  - Código de reserva y Luhn con pruebas unitarias → `libs/domain/src/bookings/bookings.spec.ts` (37 pruebas) y `apps/api/src/payments/simulated-payment-gateway.spec.ts`.
+  - Atomicidad y *rollback* → `test/bookings/confirm-rollback.spec.ts`: un *trigger* hace fallar el `INSERT` de la reserva. Resultado: `500 INTERNAL_ERROR` sin el detalle de la base, asiento `HELD` en la misma versión, sin reserva ni eventos. Después la misma clave confirma.
+  - Idempotencia, titularidad y agotado:
+    - `test/bookings/confirm-concurrency.spec.ts`: 20 confirmaciones simultáneas con la misma clave dan 1 × `201`, 19 × `200`, el mismo código, una reserva y un evento; la misma clave en dos asientos da `201` + `422` y el perdedor sigue `HELD` en su versión;
+    - `test/bookings/confirm.spec.ts`: reintentos, `422`, `402`, bloqueo vencido o ajeno (`409 HOLD_INACTIVE`) y validación;
+    - `test/bookings/sold-out.spec.ts`: dos confirmaciones simultáneas de los dos últimos asientos de `AP105` ponen `sold_out = true` con una sola subida de versión y un único `flight.status_changed`, recibido también en la sala `search` con `socket.io-client`.
+  - Vuelo cancelado → `test/bookings/confirm-cancelled.spec.ts`: `409 FLIGHT_CANCELLED`; carrera determinista con la cancelación sin confirmar: la confirmación espera en `FOR UPDATE`, revierte y deja el asiento `HELD` sin reserva ni eventos.
+  - Consulta del boleto (§6.A M3) → `test/bookings/ticket.spec.ts`: mismo boleto, código en minúscula, apellido sin distinguir mayúsculas pero con acentos (`Gomez` ≠ `Gómez`) y `404` idéntico en ambos casos.
+- Desviaciones del contrato: ninguna. Decisiones que el contrato no fijaba:
+  - Marca de tarjeta por prefijo: `VISA` (4), `MASTERCARD` (51–55 y 2221–2720), `AMEX` (34 y 37) u `OTHER`.
+  - Referencia del simulador: `SIM-<uuid>`, 40 caracteres (4 + 36), que caben justo en `payment_reference varchar(40)`.
+  - Ante una colisión del código de reserva se reintenta la transacción completa, porque en PostgreSQL un error aborta la transacción.
+  - Si la precomprobación falla, también se vuelve a consultar la clave antes de responder. Así, un reintento que llega justo después del commit de otro con la misma clave recibe `200` y no `409`.
+- Cambios que necesita la documentación: ninguno obligatorio. Se puede añadir a arch §4.4 la regla de marcas y el formato de la referencia si el integrador lo considera útil.

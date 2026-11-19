@@ -38,6 +38,15 @@ export class ApiValidationPipe extends ValidationPipe {
   }
 
   override async transform(value: unknown, metadata: ArgumentMetadata): Promise<unknown> {
+    // Un cuerpo ausente o que no es un objeto JSON se informa como `body`, no por campo.
+    if (metadata.type === 'body' && this.toValidate(metadata)) {
+      if (value === undefined || value === null) {
+        throw ApiError.validation([{ field: 'body', reason: 'REQUIRED' }]);
+      }
+      if (typeof value !== 'object' || Array.isArray(value)) {
+        throw ApiError.validation([{ field: 'body', reason: 'INVALID' }]);
+      }
+    }
     try {
       return await super.transform(value, metadata);
     } catch (error) {

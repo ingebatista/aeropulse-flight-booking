@@ -1,6 +1,7 @@
 import {
   CLIENT_ID_HEADER,
   HOLD_TOKEN_HEADER,
+  IDEMPOTENCY_KEY_HEADER,
   UUID_V4_PATTERN,
   type ValidationReason,
 } from '@aeropulse/shared';
@@ -37,3 +38,6 @@ export const ClientId = (): ParameterDecorator => uuidHeader(CLIENT_ID_HEADER);
 
 /** `X-Hold-Token`: token del bloqueo, solo lo conoce su titular. */
 export const HoldToken = (): ParameterDecorator => uuidHeader(HOLD_TOKEN_HEADER);
+
+/** `Idempotency-Key`: UUID v4, uno por intento de compra. */
+export const IdempotencyKey = (): ParameterDecorator => uuidHeader(IDEMPOTENCY_KEY_HEADER);
