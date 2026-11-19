@@ -8,6 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   AIRPORT_CODES,
   DATE_PATTERN,
@@ -53,6 +54,7 @@ function offsetDay(date: string, offset: number): Date {
 
 @Component({
   selector: 'app-flight-search',
+  imports: [RouterLink],
   templateUrl: './flight-search.component.html',
   styleUrl: './flight-search.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

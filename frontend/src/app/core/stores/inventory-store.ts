@@ -11,14 +11,22 @@ import { FlightsStore } from './flights-store';
 interface Inventory {
   seats: ReadonlyMap<string, SeatEvent>;
   hold: OwnHold | null;
-  serverNow: string | null;
+  clock: { serverNow: string; sampledAt: number } | null;
+  initialized: boolean;
 }
 
 export class FlightInventory {
-  private readonly state = signal<Inventory>({ seats: new Map(), hold: null, serverNow: null });
+  private readonly state = signal<Inventory>({
+    seats: new Map(),
+    hold: null,
+    clock: null,
+    initialized: false,
+  });
+  private announcedExpiry: string | null = null;
   readonly seats = computed(() => this.state().seats);
   readonly myHold = computed(() => this.state().hold);
-  readonly serverNow = computed(() => this.state().serverNow);
+  readonly clock = computed(() => this.state().clock);
+  readonly initialized = computed(() => this.state().initialized);
   readonly flight = computed(() => this.flights.flight(this.flightId));
   readonly counts = computed(() => {
     const counts: Record<SeatStatus, number> = { AVAILABLE: 0, HELD: 0, BOOKED: 0 };
@@ -40,7 +48,7 @@ export class FlightInventory {
     if (snapshot.flight.id !== this.flightId) return;
     this.flights.applyFlight(snapshot.flight);
     this.state.update((state) => {
-      const next = this.mergeSeats(state, snapshot.seats);
+      const next = { ...this.mergeSeats(state, snapshot.seats), initialized: true };
       if (snapshot.myHold) return this.mergeHold(next, snapshot.myHold, snapshot.serverNow);
 
       const hold = next.hold;
@@ -55,7 +63,7 @@ export class FlightInventory {
       return {
         ...next,
         hold: clearsHold ? null : next.hold,
-        serverNow: this.latestTime(next, snapshot.serverNow),
+        clock: this.sampleClock(next, snapshot.serverNow),
       };
     });
   }
@@ -71,6 +79,12 @@ export class FlightInventory {
     this.state.update((state) =>
       state.hold?.holdToken === holdToken.toLowerCase() ? { ...state, hold: null } : state,
     );
+  }
+
+  markExpiryAnnounced(holdToken: string): boolean {
+    if (this.announcedExpiry === holdToken) return false;
+    this.announcedExpiry = holdToken;
+    return true;
   }
 
   private mergeSeats(state: Inventory, incoming: readonly SeatEvent[]): Inventory {
@@ -89,18 +103,18 @@ export class FlightInventory {
 
   private mergeHold(state: Inventory, hold: OwnHold, serverNow: string): Inventory {
     const seat = state.seats.get(hold.seatCode);
-    const serverTime = this.latestTime(state, serverNow);
+    const clock = this.sampleClock(state, serverNow);
     const applies =
       seat?.status === 'HELD' &&
       seat.version === hold.version &&
-      Date.parse(hold.holdExpiresAt) > Date.parse(serverTime);
-    return { ...state, hold: applies ? hold : state.hold, serverNow: serverTime };
+      Date.parse(hold.holdExpiresAt) > Date.parse(clock.serverNow);
+    return { ...state, hold: applies ? hold : state.hold, clock };
   }
 
-  private latestTime(state: Inventory, serverNow: string): string {
-    return state.serverNow && Date.parse(state.serverNow) > Date.parse(serverNow)
-      ? state.serverNow
-      : serverNow;
+  private sampleClock(state: Inventory, serverNow: string): NonNullable<Inventory['clock']> {
+    if (state.clock && Date.parse(state.clock.serverNow) >= Date.parse(serverNow))
+      return state.clock;
+    return { serverNow, sampledAt: performance.now() };
   }
 }
 

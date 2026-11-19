@@ -19,7 +19,8 @@ export function makeCatalog(now: number): Flight[] {
           if (departure <= now) return;
 
           flights.push({
-            id: crypto.randomUUID(),
+            // El mismo vuelo simulado conserva su enlace al recargar la página.
+            id: `00000000-${AIRPORT_CODES.indexOf(origin)}${AIRPORT_CODES.indexOf(destination)}${index}0-4000-8000-${departure.toString(16).padStart(12, '0')}`,
             flightNumber: `AP${100 + AIRPORT_CODES.indexOf(origin)}${AIRPORT_CODES.indexOf(destination)}${index + 1}`,
             origin,
             destination,

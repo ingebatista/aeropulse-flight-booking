@@ -196,6 +196,18 @@
               <span class="eyebrow">Tarifa</span>
               <strong>{{ fare(flight.fareCop) }}</strong>
             </div>
+            <div class="flight__actions">
+              <a [routerLink]="['/vuelos', flight.id, 'ocupacion']"
+                >Ver ocupación<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span></a
+              >
+              @if (flight.status !== 'CANCELLED' && !flight.soldOut) {
+                <a class="flight__choose" [routerLink]="['/vuelos', flight.id, 'asientos']"
+                  >Elegir asiento<span class="sr-only">
+                    en el vuelo {{ flight.flightNumber }}</span
+                  ></a
+                >
+              }
+            </div>
           </li>
         }
       </ul>

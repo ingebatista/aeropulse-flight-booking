@@ -5,7 +5,14 @@
       AeroPulse
     </a>
     <nav aria-label="Principal">
-      <a class="site-header__link" routerLink="/" aria-current="page">Buscar vuelos</a>
+      <a
+        class="site-header__link"
+        routerLink="/"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page"
+        >Buscar vuelos</a
+      >
     </nav>
   </div>
 </header>

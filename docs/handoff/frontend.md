@@ -115,3 +115,21 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 - Capacidades reales verificadas: ninguna. `search` sigue en el adaptador falso hasta integrar M1 en `develop`. La verificación de Socket.IO real queda para M2.
 - Desviaciones del contrato: ninguna detectada en los casos probados.
 - Cambios que necesita la documentación: ninguno.
+
+### F3 · 2026-11-19
+
+- La búsqueda enlaza al mapa y a la ocupación. Ambas vistas comparten la suscripción y el inventario por vuelo. El mapa permite bloquear y liberar asientos, muestra el vencimiento calculado con el reloj del servidor y conserva el inventario durante una desconexión.
+- Los identificadores de vuelos simulados se mantienen al recargar un enlace cuyo vuelo sigue en el catálogo. Los bloqueos de `fake` se recuperan al reconectar en la misma instancia de la aplicación.
+- Los comandos y la revisión de navegador dieron estos resultados.
+
+  | Comando | Salida |
+  | --- | --- |
+  | `npm run build` | `webpack 5.106.2 compiled successfully` para API y migraciones. Angular generó los *chunks* diferidos del mapa y la ocupación. |
+  | `npm run build -w frontend -- --configuration fake` | `Application bundle generation complete. [2.284 seconds]` |
+  | `npm test -w frontend` | `Test Files  6 passed (6)` · `Tests  23 passed (23)` |
+  | `npm run lint` | `eslint .`, código de salida `0`. |
+  | Chrome con `npm start -w frontend -- --configuration fake` | Mapa y ocupación revisados a 360 y 1366 px sin desbordamiento. Tab mostró foco de 3 px y Enter bloqueó 1A. Al pasar a ocupación se vieron 5 disponibles, 1 bloqueado y 0 reservados. |
+  | Lighthouse, modo `snapshot` | `Accessibility: 100` en el mapa móvil y la ocupación de escritorio, sin comprobaciones de accesibilidad fallidas. |
+
+- La validación de búsqueda con M1 y la de inventario y Socket.IO con M2 siguen pendientes de su integración en `develop`. El adaptador `fake` aporta pre-evidencia para F3.
+- No se detectaron desviaciones del contrato en los casos probados.

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { type Flight, type JoinResult } from '@aeropulse/shared';
 import { vi } from 'vitest';
 import { ClientIdentity } from '../../core/api/client-identity';
@@ -52,6 +53,7 @@ describe('Búsqueda de vuelos', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ClientIdentity, useValue: { id: '53d65dc2-9904-43fb-9699-60c553a9d774' } },
         { provide: SOCKET_FACTORY, useValue: factory },
       ],
@@ -89,6 +91,9 @@ describe('Búsqueda de vuelos', () => {
     connect();
     http.expectOne(url).flush({ flights: [flight] });
     await fixture.whenStable();
+    expect(page.querySelector('.flight__choose')?.getAttribute('href')).toBe(
+      `/vuelos/${flight.id}/asientos`,
+    );
 
     page.querySelector<HTMLButtonElement>('.swap')!.click();
     await fixture.whenStable();
@@ -161,6 +166,8 @@ describe('Búsqueda de vuelos', () => {
     const row = page.querySelector('.flight');
     expect(row?.textContent).toContain('Retrasado');
     expect(row?.textContent).toContain('Agotado');
+    expect(row?.querySelector('.flight__choose')).toBeNull();
+    expect(row?.querySelector('a')?.getAttribute('href')).toBe(`/vuelos/${flight.id}/ocupacion`);
     expect(row?.textContent).toContain('08:00');
     expect(row?.textContent).toContain('COP 240.000');
 
