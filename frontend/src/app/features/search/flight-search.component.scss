@@ -461,6 +461,147 @@ h2 {
     no-repeat;
 }
 
+.search-page--public {
+  --panel-padding: clamp(16px, 2.5vw, 32px);
+
+  .page-heading {
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .search-intro h1 {
+    font-size: clamp(30px, 2.5vw, 36px);
+    letter-spacing: -0.025em;
+  }
+
+  .search-intro p {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+
+  .connection {
+    margin-top: 4px;
+  }
+
+  .search-form {
+    padding: var(--panel-padding);
+    box-shadow: 0 8px 24px #262b400d;
+  }
+
+  .field {
+    min-width: 0;
+  }
+
+  .field select,
+  .field input {
+    height: 50px;
+    padding-inline: 12px;
+    background: var(--color-background);
+    font-size: 16px;
+  }
+
+  .field [aria-invalid='true'] {
+    background: var(--color-error-background);
+  }
+
+  .field-error {
+    color: #7f251f;
+  }
+
+  .swap {
+    height: 50px;
+    width: 50px;
+  }
+
+  .search-button {
+    min-height: 50px;
+    padding-inline: 20px;
+  }
+
+  .days {
+    grid-template-columns: repeat(5, minmax(44px, 64px));
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+
+  .day {
+    min-height: 48px;
+  }
+
+  .day[aria-pressed='true'] {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-surface);
+    box-shadow: none;
+  }
+
+  .day[aria-pressed='true']:hover {
+    background: var(--color-primary-hover);
+  }
+
+  .results {
+    display: grid;
+    gap: 16px;
+    padding: var(--panel-padding);
+    border: 1px solid var(--color-outline);
+    border-radius: 12px;
+    background: var(--color-surface);
+    box-shadow: 0 2px 6px #262b400a;
+  }
+
+  .results-heading,
+  .notice--error {
+    margin-bottom: 0;
+  }
+
+  .result-count:not(:empty) {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e8f2fd;
+    color: var(--color-primary-hover);
+  }
+
+  .flight,
+  .notice--empty {
+    background: var(--color-background);
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 1050px) {
+  .search-page--public .search-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.45fr) auto;
+    align-items: start;
+    gap: 8px 14px;
+  }
+
+  .search-page--public .fields {
+    display: contents;
+  }
+
+  .search-page--public .days {
+    grid-column: 4;
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .search-page--public .flight {
+    grid-template-columns:
+      minmax(74px, 0.7fr) minmax(180px, 1.8fr) minmax(120px, 1fr) minmax(112px, auto)
+      auto;
+  }
+
+  .search-page--public .flight__actions {
+    grid-column: auto;
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
 @media (max-width: 850px) {
   .fields {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -469,6 +610,19 @@ h2 {
   .search-button {
     grid-column: 3;
     min-width: 0;
+  }
+
+  .search-page--public .flight {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .search-page--public .flight__fare {
+    grid-area: 1 / 2;
+  }
+
+  .search-page--public .itinerary,
+  .search-page--public .flight__statuses {
+    grid-column: 1 / -1;
   }
 }
 
@@ -533,6 +687,15 @@ h2 {
 
   .flight__statuses {
     grid-column: 1 / -1;
+  }
+
+  .search-page--public .days {
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+  }
+
+  .search-page--public .flight__actions a {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
 

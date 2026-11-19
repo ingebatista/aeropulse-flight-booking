@@ -112,6 +112,8 @@ describe('Administración y estado de vuelos', () => {
 
   it('funde el retraso y el evento duplicado por versión, y confirma la cancelación de forma explícita', async () => {
     await openAdmin();
+    expect(page().querySelector('.search-page--public')).toBeNull();
+    expect(page().querySelector('h1')?.textContent?.trim()).toBe('Administración');
     const delay = action('.flight__actions button');
     delay.click();
     delay.click();
@@ -175,6 +177,7 @@ describe('Administración y estado de vuelos', () => {
     await harness.navigateByUrl('/estado-de-vuelos');
     http.expectOne(searchUrl).flush({ flights: [{ ...flight, soldOut: false }] });
     harness.detectChanges();
+    expect(page().querySelector('.search-page--public')).toBeNull();
     expect(page().querySelector('h1')?.textContent?.trim()).toBe('Estado de vuelos');
     expect(page().querySelector('a[href="/admin"]')).not.toBeNull();
     expect(page().querySelector(`a[href="/vuelos/${flight.id}/ocupacion"]`)).not.toBeNull();

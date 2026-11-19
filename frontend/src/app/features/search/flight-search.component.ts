@@ -104,10 +104,15 @@ export class FlightSearchComponent {
     return [-2, -1, 0, 1, 2]
       .map((offset) => {
         const day = offsetDay(date, offset);
+        const dateParts = SHORT_DATE.formatToParts(day);
         return {
           date: day.toISOString().slice(0, 10),
           weekday: WEEKDAY.format(day),
-          short: SHORT_DATE.format(day),
+          short: dateParts.map(({ value }) => value).join(''),
+          compact: dateParts
+            .filter(({ type }) => type !== 'literal')
+            .map(({ value }) => value)
+            .join(' '),
           label: DATE_LABEL.format(day),
         };
       })

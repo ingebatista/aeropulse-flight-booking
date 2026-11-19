@@ -1,8 +1,15 @@
-<div class="search-page">
+@let publicSearch = !statusView && !flightActions();
+
+<div class="search-page" [class.search-page--public]="publicSearch">
   <div class="page-heading">
-    <h1>
-      {{ flightActions() ? 'Administración' : statusView ? 'Estado de vuelos' : 'Buscar vuelos' }}
-    </h1>
+    @if (publicSearch) {
+      <div class="search-intro">
+        <h1>Reserva tu vuelo nacional</h1>
+        <p>Consulta salidas en vivo y elige tu asiento para viajar por Colombia.</p>
+      </div>
+    } @else {
+      <h1>{{ flightActions() ? 'Administración' : 'Estado de vuelos' }}</h1>
+    }
     <div class="connection" role="status">
       @switch (connection().status) {
         @case ('connected') {
@@ -94,11 +101,13 @@
           required
           [value]="filters().date"
           [attr.aria-invalid]="dateInvalid() || null"
-          [attr.aria-describedby]="dateInvalid() ? 'date-error' : null"
+          [attr.aria-describedby]="dateInvalid() ? 'date-error' : publicSearch ? 'date-help' : null"
           (input)="changeDate(dateInput.value)"
         />
         @if (dateInvalid()) {
           <small class="field-error" id="date-error">Introduce una fecha válida.</small>
+        } @else if (publicSearch) {
+          <small id="date-help">La fecha y los horarios se muestran en UTC.</small>
         }
       </div>
 
@@ -123,7 +132,7 @@
           (click)="selectDay(day.date)"
         >
           <span class="day__weekday">{{ day.weekday }}</span>
-          <span class="day__date">{{ day.short }}</span>
+          <span class="day__date">{{ publicSearch ? day.compact : day.short }}</span>
           <span [id]="'day-' + day.date" hidden>{{ day.label }} UTC</span>
         </button>
       }
