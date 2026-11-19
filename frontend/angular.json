@@ -38,17 +38,6 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
-            },
-            "fake": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/app/core/transport.providers.ts",
-                  "with": "src/app/core/transport.providers.fake.ts"
-                }
-              ]
             }
           },
           "defaultConfiguration": "production"
@@ -64,9 +53,6 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
-            },
-            "fake": {
-              "buildTarget": "frontend:build:fake"
             }
           },
           "defaultConfiguration": "development"

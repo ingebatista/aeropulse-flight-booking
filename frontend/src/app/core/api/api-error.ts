@@ -10,6 +10,7 @@ const messages: Record<FrontendErrorCode, string> = {
   FLIGHT_NOT_FOUND: 'No se encontró el vuelo.',
   SEAT_NOT_FOUND: 'No se encontró el asiento.',
   BOOKING_NOT_FOUND: 'No se encontró la reserva.',
+  NOT_FOUND: 'No se encontró el recurso solicitado.',
   FLIGHT_CANCELLED: 'El vuelo fue cancelado.',
   SEAT_UNAVAILABLE: 'El asiento ya no está disponible.',
   HOLD_INACTIVE: 'El bloqueo del asiento ya no está vigente.',

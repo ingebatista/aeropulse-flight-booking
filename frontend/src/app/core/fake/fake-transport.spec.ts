@@ -1,5 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { inject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   CLIENT_ID_HEADER,
@@ -13,9 +14,12 @@ import { vi } from 'vitest';
 import { ClientIdentity } from '../api/client-identity';
 import { ReservationApi } from '../api/reservation-api';
 import { FlightRealtime } from '../socket/flight-realtime';
+import { SOCKET_FACTORY } from '../socket/socket-factory';
 import { FlightsStore } from '../stores/flights-store';
 import { InventoryStore } from '../stores/inventory-store';
-import { transportProviders } from '../transport.providers.fake';
+import { fakeHttp } from './fake-http';
+import { FakeReservations } from './fake-reservations';
+import { fakeSocket } from './fake-socket';
 
 const query = { origin: 'BOG', destination: 'MDE', date: '2026-11-19' } as const;
 const now = '2026-11-19T07:00:00.000Z';
@@ -27,7 +31,15 @@ describe('Transporte fake', () => {
     vi.setSystemTime(new Date(now));
     sessionStorage.removeItem(storageKey);
     TestBed.configureTestingModule({
-      providers: [...transportProviders, provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(
+          withInterceptors([
+            fakeHttp({ search: true, seats: true, realtime: true, booking: true, admin: true }),
+          ]),
+        ),
+        provideHttpClientTesting(),
+        { provide: SOCKET_FACTORY, useFactory: () => fakeSocket(inject(FakeReservations)) },
+      ],
     });
   });
 

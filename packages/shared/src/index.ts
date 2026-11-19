@@ -1,7 +1,7 @@
 /**
  * Contratos v1 entre frontend y backend (etiqueta `contracts-v1`).
  *
- * Fuente de verdad: docs/contracts-and-open-questions.md. Este archivo solo
+ * Fuente de verdad: docs/handoff/contracts-and-open-questions.md. Este archivo solo
  * refleja lo que cruza el cable: tipos, valores cerrados y patrones de validación.
  * Congelado tras M0: cualquier cambio se pide como `CCR-n` al integrador.
  * No importa nada y no contiene lógica de negocio.
@@ -33,6 +33,7 @@ export const ERROR_CODES = [
   'FLIGHT_NOT_FOUND',
   'SEAT_NOT_FOUND',
   'BOOKING_NOT_FOUND',
+  'NOT_FOUND',
   'FLIGHT_CANCELLED',
   'SEAT_UNAVAILABLE',
   'HOLD_INACTIVE',
@@ -53,6 +54,7 @@ export const ERROR_HTTP_STATUS: Readonly<Record<ErrorCode, number>> = {
   FLIGHT_NOT_FOUND: 404,
   SEAT_NOT_FOUND: 404,
   BOOKING_NOT_FOUND: 404,
+  NOT_FOUND: 404,
   FLIGHT_CANCELLED: 409,
   SEAT_UNAVAILABLE: 409,
   HOLD_INACTIVE: 409,
@@ -92,7 +94,8 @@ export function flightRoom(flightId: string): FlightRoom {
 // ---------------------------------------------------------------------------
 
 /** UUID v4 con guiones. Se acepta cualquier caja y se normaliza a minúsculas. */
-export const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** `YYYY-MM-DD`. Que sea una fecha real lo comprueba quien valida. */
 export const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export const SEAT_CODE_PATTERN = /^[0-9]{1,2}[A-D]$/;

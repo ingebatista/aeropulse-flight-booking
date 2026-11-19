@@ -2,7 +2,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
  * Esquema de negocio del MVP: `flights`, `seats` y `bookings`, con sus
- * restricciones e índices (docs/persistence.md).
+ * restricciones e índices (docs/handoff/persistence.md).
  *
  * Los permisos del rol `app` los cubren los privilegios por defecto de
  * `AppRoleGrants`: aquí no hay `GRANT`. `down()` no usa `CASCADE`, para que una

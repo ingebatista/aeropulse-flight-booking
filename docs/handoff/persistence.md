@@ -1,6 +1,6 @@
 # Persistencia · Entidades, relaciones y migraciones
 
-Este documento fija el esquema inicial del MVP. Las entidades y la migración de negocio se implementan y verifican a partir de este diseño. [Arquitectura](architecture.md) · [Reglas de negocio](business-rules.md) · [Contratos entre frontend y backend](contracts-and-open-questions.md).
+Este documento fija el esquema inicial del MVP. Las entidades y la migración de negocio se implementan y verifican a partir de este diseño. [Arquitectura](../architecture.md) · [Reglas de negocio](business-rules.md) · [Contratos entre frontend y backend](contracts-and-open-questions.md).
 
 ## Modelo de datos
 
@@ -22,7 +22,7 @@ Alcance mínimo para la kata: **un catálogo cerrado y tres tablas**. No hay ent
 | Horarios | De 1 a 3 por ruta y día, fijos y en UTC. La ruta `BOG→MDE` tiene 3 |
 | Ventana de fechas | Desde hoy hasta el último día del mes en curso, ambos en UTC, solo con salida futura. Se calcula cuando se ejecuta el *seed* |
 | Asientos por vuelo | 24: filas 1 a 6 × columnas `A`–`D` |
-| Vuelo de demostración | El tercer horario de `BOG→MDE`, con 6 asientos (filas 1 y 2 × columnas `A`–`C`), para poder agotarlo en la demo ([sección 4.7 de arquitectura](architecture.md#47-cambios-de-estado-de-vuelos-hu1)) |
+| Vuelo de demostración | El tercer horario de `BOG→MDE`, con 6 asientos (filas 1 y 2 × columnas `A`–`C`), para poder agotarlo en la demo ([sección 4.7 de arquitectura](../architecture.md#47-cambios-de-estado-de-vuelos-hu1)) |
 
 Límite conocido: si el *seed* se ejecuta el último día del mes, solo hay vuelos de ese día.
 
@@ -83,7 +83,7 @@ Todas las columnas son `NOT NULL` excepto `seats.held_by`, `seats.hold_token` y 
 | `departure_at`, `arrival_at` | `timestamptz` | UTC; la llegada es posterior a la salida |
 | `fare_cop` | `integer` | Tarifa positiva en pesos colombianos |
 | `status` | `varchar(10)` | `SCHEDULED` por defecto. También admite `DELAYED` y `CANCELLED` |
-| `sold_out` | `boolean` | Por defecto `false`; se marca en la confirmación ([sección 4.4 de arquitectura](architecture.md#44-confirmación-pago-simulado-y-agotado)) |
+| `sold_out` | `boolean` | Por defecto `false`; se marca en la confirmación ([sección 4.4 de arquitectura](../architecture.md#44-confirmación-pago-simulado-y-agotado)) |
 | `version` | `integer` | Por defecto 1; sube en cada cambio |
 
 **`seats`** (clave primaria compuesta `(flight_id, seat_code)`)
@@ -103,13 +103,13 @@ Todas las columnas son `NOT NULL` excepto `seats.held_by`, `seats.hold_token` y 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `id` | `uuid` PK | |
-| `code` | `char(6)` | Código de reserva ([sección 6 de arquitectura](architecture.md#6-decisiones-técnicas-clave)) |
+| `code` | `char(6)` | Código de reserva ([sección 6 de arquitectura](../architecture.md#6-decisiones-técnicas-clave)) |
 | `flight_id`, `seat_code` | FK compuesta → `seats` | |
 | `passenger_first_name`, `passenger_last_name` | `varchar(60)` | El apellido sirve para consultar el boleto |
 | `amount_cop` | `integer` | Importe positivo que se copia de la tarifa del vuelo al confirmar |
-| `card_last4`, `card_brand`, `payment_reference` | `char(4)`, `varchar(20)`, `varchar(40)` | Nunca el número completo ([sección 4.4 de arquitectura](architecture.md#44-confirmación-pago-simulado-y-agotado)) |
+| `card_last4`, `card_brand`, `payment_reference` | `char(4)`, `varchar(20)`, `varchar(40)` | Nunca el número completo ([sección 4.4 de arquitectura](../architecture.md#44-confirmación-pago-simulado-y-agotado)) |
 | `idempotency_key` | `uuid` | Clave UUID v4 enviada en el encabezado `Idempotency-Key`. La API valida la versión |
-| `request_hash` | `char(64)` | SHA-256 de la solicitud ([sección 4.4 de arquitectura](architecture.md#44-confirmación-pago-simulado-y-agotado)) |
+| `request_hash` | `char(64)` | SHA-256 de la solicitud ([sección 4.4 de arquitectura](../architecture.md#44-confirmación-pago-simulado-y-agotado)) |
 | `created_at` | `timestamptz` | Por defecto `now()` |
 
 **De regla a restricción.** Cada regla del diseño debe quedar respaldada por algo que la base o la sentencia impongan:
@@ -123,15 +123,15 @@ Todas las columnas son `NOT NULL` excepto `seats.held_by`, `seats.hold_token` y 
 | Estados válidos del vuelo y del asiento | `CHECK (status IN (…))` | Base |
 | El código de asiento es único dentro del vuelo y tiene formato válido | PK `(flight_id, seat_code)` y `CHECK (seat_code ~ '^[0-9]{1,2}[A-D]$')` | Base |
 | Los tres campos del bloqueo tienen valor en `HELD` y son nulos en `AVAILABLE` y `BOOKED` | `CHECK` de consistencia del bloqueo, definido abajo | Base |
-| Dos bloqueos simultáneos del mismo asiento producen uno solo | `UPDATE` condicional atómico ([sección 4.3 de arquitectura](architecture.md#43-bloqueo-atómico-idempotente-para-su-titular)) | Sentencia |
-| Un solo bloqueo activo por cliente y vuelo | `UNIQUE (flight_id, held_by) WHERE status = 'HELD'`; el bloqueo libera primero el anterior y, ante `23505`, se reintenta una vez ([sección 4.3 de arquitectura](architecture.md#43-bloqueo-atómico-idempotente-para-su-titular)) | Base y transacción |
-| No se bloquea ni confirma en un vuelo cancelado | El `hold` filtra con `EXISTS`. Después de modificar el asiento, el `hold` comprueba el vuelo con `FOR SHARE` y la confirmación con `FOR UPDATE`, antes del *commit*. Ambas revierten si el vuelo está cancelado. [Bloqueo](architecture.md#43-bloqueo-atómico-idempotente-para-su-titular) · [Confirmación](architecture.md#44-confirmación-pago-simulado-y-agotado) | Sentencia y transacción |
-| No se confirma un bloqueo vencido o ajeno | `WHERE status = 'HELD' AND held_by = :clientId AND hold_token = :token AND hold_expires_at > now()` ([sección 4.4 de arquitectura](architecture.md#44-confirmación-pago-simulado-y-agotado)) | Sentencia |
+| Dos bloqueos simultáneos del mismo asiento producen uno solo | `UPDATE` condicional atómico ([sección 4.3 de arquitectura](../architecture.md#43-bloqueo-atómico-idempotente-para-su-titular)) | Sentencia |
+| Un solo bloqueo activo por cliente y vuelo | `UNIQUE (flight_id, held_by) WHERE status = 'HELD'`; el bloqueo libera primero el anterior y, ante `23505`, se reintenta una vez ([sección 4.3 de arquitectura](../architecture.md#43-bloqueo-atómico-idempotente-para-su-titular)) | Base y transacción |
+| No se bloquea ni confirma en un vuelo cancelado | El `hold` filtra con `EXISTS`. Después de modificar el asiento, el `hold` comprueba el vuelo con `FOR SHARE` y la confirmación con `FOR UPDATE`, antes del *commit*. Ambas revierten si el vuelo está cancelado. [Bloqueo](../architecture.md#43-bloqueo-atómico-idempotente-para-su-titular) · [Confirmación](../architecture.md#44-confirmación-pago-simulado-y-agotado) | Sentencia y transacción |
+| No se confirma un bloqueo vencido o ajeno | `WHERE status = 'HELD' AND held_by = :clientId AND hold_token = :token AND hold_expires_at > now()` ([sección 4.4 de arquitectura](../architecture.md#44-confirmación-pago-simulado-y-agotado)) | Sentencia |
 | Un asiento no tiene más de una reserva | `UNIQUE (flight_id, seat_code)` en `bookings` | Base |
 | La reserva apunta a un asiento existente | FK compuesta `(flight_id, seat_code)` | Base |
 | El código de reserva es único y cumple el formato del contrato | `UNIQUE (code)` con reintento ante colisión y `CHECK (code ~ '^[A-HJ-NP-Z2-9]{6}$')` | Base |
-| Un intento de compra produce un solo boleto | `UNIQUE (idempotency_key)` ([sección 4.4 de arquitectura](architecture.md#44-confirmación-pago-simulado-y-agotado)) | Base |
-| Una reserva existe si y solo si el asiento está `BOOKED` | Una sola transacción con el mismo `EntityManager`; la vigila la prueba de *rollback* ([sección 8 de arquitectura](architecture.md#8-pruebas)) | Transacción |
+| Un intento de compra produce un solo boleto | `UNIQUE (idempotency_key)` ([sección 4.4 de arquitectura](../architecture.md#44-confirmación-pago-simulado-y-agotado)) | Base |
+| Una reserva existe si y solo si el asiento está `BOOKED` | Una sola transacción con el mismo `EntityManager`; la vigila la prueba de *rollback* ([sección 8 de arquitectura](../architecture.md#8-pruebas)) | Transacción |
 | `version` sube en cada cambio | Todo `UPDATE` incluye `version = version + 1`; la vigilan las pruebas | Aplicación |
 
 La correspondencia entre una reserva y el asiento `BOOKED` se garantiza mediante la transacción de confirmación. Se verificará con la prueba de *rollback*.

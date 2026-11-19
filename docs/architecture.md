@@ -1,9 +1,9 @@
 # Arquitectura · Sistema de reservas de vuelos en tiempo real
 
 > Documento obligatorio del enunciado (sección 6.2): diseño, justificación, concurrencia, decisiones técnicas y ejecución.
-> **Estado:** el monorepo, los contratos compartidos, la conexión a PostgreSQL, la ruta de salud y la entrada de Socket.IO existen. Las historias de usuario y sus garantías de concurrencia y tiempo real se implementan y verifican por hito. [Checklist de implementación](checklist.md).
+> **Estado:** HU1–HU4 están integradas en `develop` con Angular, la API y PostgreSQL. La [trazabilidad de requisitos](handoff/checklist.md#trazabilidad-de-la-entrega-m5) enlaza la implementación, las pruebas y las limitaciones de la entrega.
 >
-> Documentos complementarios: [reglas de negocio](business-rules.md), [contratos entre frontend y backend](contracts-and-open-questions.md) y [persistencia y migraciones](persistence.md).
+> Documentos complementarios: [reglas de negocio](handoff/business-rules.md), [contratos entre frontend y backend](handoff/contracts-and-open-questions.md) y [persistencia y migraciones](handoff/persistence.md).
 
 ---
 
@@ -12,7 +12,7 @@
 | Pieza | Tecnología | Rol |
 | --- | --- | --- |
 | Frontend | Angular 21 (standalone, signals, zoneless) servido por Nginx | Una sola aplicación: área pública y área de administración en carga diferida |
-| API | NestJS 11 sobre Node.js ≥ 24.11, TypeScript 5.9 | Una sola API: búsqueda, bloqueo, confirmación, pago simulado, barrido de expirados, administración de vuelos; REST y un *gateway* Socket.IO |
+| API | NestJS 11 sobre Node.js 24 (desde 24.11), TypeScript 5.9 | Una sola API: búsqueda, bloqueo, confirmación, pago simulado, barrido de expirados, administración de vuelos; REST y un *gateway* Socket.IO |
 | Tiempo real | Socket.IO con salas (`flight:{id}`, `search`) | Difusión de eventos del servidor a los clientes |
 | Persistencia | PostgreSQL 17 con TypeORM 1.1.3 | Única fuente de verdad: atomicidad, restricciones y reloj |
 | Contratos | `packages/shared` (TypeScript) | DTOs, enums de estado y contrato tipado de eventos |
@@ -30,7 +30,7 @@ flowchart LR
   subgraph API["API · NestJS (monolito modular)"]
     CTRL["Controladores REST"]
     SVC["flights · inventory · payments · admin"]
-    JOB["Barrido de expirados (1 s)"]
+    JOB["Barrido de expirados (1 s por defecto)"]
     BUS["EventBus<br/>bus en proceso, tras commit"]
     RT["realtime<br/>gateway Socket.IO /ws"]
   end
@@ -98,22 +98,22 @@ Catálogo (vuelos y sus asientos, §3.4): lo escribe solo el *seed*. Los contado
 | `backend/libs/persistence` | Entidades TypeORM decoradas, migraciones, *seed*, opciones de conexión | Único lugar que conoce el esquema |
 | `backend/libs/events` | Puerto `EventBus` y su adaptador en proceso | — |
 | `packages/shared` | DTOs, enums y contrato de eventos (ESM y CommonJS) | Lo que cruza el cable entre frontend y backend |
-| `frontend/src/app` | `core` (api, socket, almacenes) y `features` (search, seat-map, checkout, dashboard, admin) | El área admin se carga de forma diferida; el estado del tiempo real vive en un único almacén (§4.6) |
+| `frontend/src/app` | `core` (api, socket, almacenes) y `features` (search, seat-map, checkout, dashboard, admin) | El área admin se carga de forma diferida. El catálogo vive en `FlightsStore` y cada vuelo tiene un inventario compartido por mapa, ocupación y checkout (§4.6) |
 | `docker/db-init` | Script que crea el rol `app` | Solo se ejecuta con el volumen vacío (§7) |
 
-**Bus de eventos.** `inventory` y `flights` registran eventos durante la transacción y los publican **solo después del *commit***; si hay *rollback*, se descartan. `realtime` se suscribe y difunde. La publicación va envuelta en `try/catch` con log: un fallo de difusión nunca debe convertir en `500` una operación ya confirmada.
+**Bus de eventos.** El bloqueo y la confirmación reúnen los eventos dentro de la transacción y los publican **después del *commit***. La liberación, el barrido y el cambio de estado publican al completar su `UPDATE` en *autocommit*. Las escrituras revertidas descartan sus eventos. `realtime` se suscribe y difunde. El bus captura y registra fallos de difusión para que la respuesta de una operación confirmada conserve su resultado.
 
 ### 3.4. Modelo de datos
 
-El diseño contempla un catálogo cerrado y tres tablas: `flights`, `seats` y `bookings`. Un vuelo contiene varios asientos y cada asiento puede tener como máximo una reserva. No se prevén tablas independientes de aeronaves ni aeropuertos. Las reglas de catálogo se describen en [reglas de negocio](business-rules.md); el diagrama, las columnas, las restricciones y la estrategia de migraciones se detallan en [persistencia](persistence.md).
+El esquema tiene un catálogo cerrado y tres tablas de dominio, `flights`, `seats` y `bookings`. Un vuelo contiene varios asientos y cada asiento puede tener como máximo una reserva. Los aeropuertos son códigos del catálogo y la distribución de la cabina se define por vuelo. [Reglas de negocio](handoff/business-rules.md) · [Persistencia](handoff/persistence.md).
 
-El diseño usa UTC para fechas y horarios. Las garantías transaccionales y de concurrencia se describen en la sección 4.
+PostgreSQL guarda los instantes en `timestamptz`. La búsqueda interpreta la fecha como día UTC y la API serializa los horarios como ISO 8601 con `Z`. La interfaz muestra las horas en UTC y las tarifas en COP.
 
 ---
 
 ## 4. Concurrencia y estado en tiempo real
 
-Las rutas, los formatos y los errores se especifican en [contratos entre frontend y backend](contracts-and-open-questions.md).
+Las rutas, los formatos y los errores se especifican en [contratos entre frontend y backend](handoff/contracts-and-open-questions.md).
 
 ### 4.1. Máquina de estados del asiento
 
@@ -135,7 +135,7 @@ Son los tres estados y las tres transiciones del enunciado. Un pago rechazado no
 | Base de datos (respaldo) | `UNIQUE (flight_id, seat_code)` en `bookings` | Dos reservas del mismo asiento aunque falle la lógica |
 | Idempotencia | `Idempotency-Key` con `UNIQUE` en `bookings` | Doble clic o reintentos con dos boletos |
 | Dominio (apoyo) | Funciones puras de transición, con pruebas unitarias | Transiciones ilegales en el código; **no** reemplazan al SQL |
-| UI | Actualización optimista con *rollback* ante `409` | Mala experiencia; no es una garantía de corrección |
+| UI | Indica que la solicitud está pendiente y fusiona respuestas y eventos por versión. Ante un conflicto de inventario pide una nueva instantánea. | Mantiene el bloqueo previo si falla el cambio de asiento |
 
 ### 4.3. Bloqueo atómico, idempotente para su titular
 
@@ -169,7 +169,7 @@ RETURNING version, hold_expires_at;
   - en otro caso → `409 SEAT_UNAVAILABLE`.
 - **Un solo bloqueo activo por cliente y vuelo.** El índice único parcial `(flight_id, held_by) WHERE status = 'HELD'` protege la invariante aunque dos peticiones cambien asientos distintos. Si una transacción recibe `23505` de ese índice, se revierte y se reintenta una vez. El paso 1 del reintento puede liberar el asiento adquirido por la otra petición. El asiento del último cambio confirmado conserva el bloqueo.
 - **Interbloqueo al cambiar de asiento.** Dos cambios cruzados pueden tomar distintos asientos en el paso 1 y esperar por el otro asiento en el paso 2 si ambos bloqueos vencieron. `40P01` y `23505` del índice por titular comparten un presupuesto de un reintento de la transacción completa tras revertir. Si el reintento termina con alguno de esos errores, la API devuelve `500 INTERNAL_ERROR`. Se descartan los cambios y eventos de cada intento revertido. [Interbloqueos en PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS).
-- **Índices.** La clave primaria `(flight_id, seat_code)` para el `hold`, el índice parcial `(hold_expires_at) WHERE status = 'HELD'` para el barrido y el único parcial anterior ([persistencia](persistence.md)).
+- **Índices.** La clave primaria `(flight_id, seat_code)` para el `hold`, el índice parcial `(hold_expires_at) WHERE status = 'HELD'` para el barrido y el único parcial anterior ([persistencia](handoff/persistence.md)).
 - **TypeORM.** La sentencia se ejecuta con `createQueryBuilder().update(...).returning([...])` y se lee `affected` y `raw`. No se usa `manager.query()` para esto: el resultado de un `UPDATE` tiene otra forma (`[filas, cantidad]`).
 
 ### 4.4. Confirmación, pago simulado y agotado
@@ -209,7 +209,7 @@ sequenceDiagram
   end
 ```
 
-El simulador se llama **antes** de abrir la transacción para no retener bloqueos de fila mientras se espera una respuesta; es el mismo orden que exigiría un proveedor real. Si el bloqueo vence entre la aprobación y la transacción se responde `409`; con el simulador no hay un cobro que devolver.
+La API llama al simulador antes de abrir la transacción. La escritura verifica la vigencia con `now()` al inicio de la transacción. Si el bloqueo ya venció, la API devuelve `409 HOLD_INACTIVE`. Un proveedor real requeriría compensación y conciliación (§10).
 
 | Garantía | Cómo se logra |
 | --- | --- |
@@ -231,23 +231,24 @@ La confirmación usa `READ COMMITTED`. El conteo de asientos pendientes se ejecu
 | Petición que confirma por primera vez | `201` con el boleto |
 | Misma clave y mismos datos | `200` con el boleto original; no se crea otra reserva |
 | Misma clave con otros datos | `422 IDEMPOTENCY_KEY_REUSED` |
-| Peticiones simultáneas con la misma clave | En el mismo asiento, el `UPDATE` decide cuál puede continuar. En asientos distintos, ambas pueden actualizar su asiento y `UNIQUE (idempotency_key)` decide cuál inserta la reserva. Ante conflicto de estado o `23505` de esa clave, se revierte la transacción antes de volver a consultar la reserva. Si existe, se devuelve `200` con el boleto original al coincidir la huella o `422` al diferir |
+| Peticiones simultáneas con la misma clave | En el mismo asiento, el `UPDATE` decide cuál puede continuar. En asientos distintos, `UNIQUE (idempotency_key)` decide cuál inserta la reserva. La API vuelve a consultar la clave si falla la precomprobación, si el `UPDATE` afecta cero filas o si hay una violación de unicidad de esa clave. Si se abrió una transacción, primero la revierte. Si ya hay reserva, devuelve `200` con el boleto original al coincidir la huella o `422` al diferir |
+| Colisión del código de reserva | Se revierte y repite la transacción completa con un código nuevo, hasta tres intentos en total |
 | Pago rechazado | `402`. No se guarda nada |
 | Bloqueo vencido, ajeno o sustituido | `409 HOLD_INACTIVE` |
 | Vuelo cancelado | `409 FLIGHT_CANCELLED` |
 
 **Una transacción, un solo `EntityManager`.** Toda escritura dentro de la confirmación usa el `EntityManager` que entrega `dataSource.transaction()`. Un repositorio inyectado con `@InjectRepository` usa el *manager* por defecto y escribe **fuera** de la transacción: si algo falla después, el *rollback* no lo deshace. Por eso los métodos de escritura reciben el `manager` como parámetro explícito y una prueba de *rollback* lo vigila.
 
-**Datos de pago.** No se guarda el número de tarjeta; la reserva guarda `card_last4`, `card_brand` y la referencia del simulador. Es minimización de datos (la regla estricta de PCI-DSS es no guardar el CVV tras la autorización). Nunca se registra el cuerpo de la petición de pago. El número viaja hasta la API porque el pago es ficticio; con un proveedor real, el número nunca tocaría el servidor propio (campos alojados o tokenización).
+**Datos de pago.** La reserva guarda solo `card_last4`, `card_brand` y la referencia del simulador. La marca se deduce del prefijo: `VISA` (4), `MASTERCARD` (51–55 y 2221–2720), `AMEX` (34 y 37) u `OTHER`. La referencia `SIM-<uuid>` tiene 40 caracteres y cabe en `payment_reference varchar(40)`. El número de prueba viaja únicamente en el cuerpo de la confirmación y queda fuera de los registros y de la base. El formulario y el contrato prescinden del CVV.
 
 | Tarjeta termina en | Resultado |
 | --- | --- |
 | `4242` | Aprobado |
 | `0002` | Rechazado (`402`); el asiento sigue bloqueado |
 
-El número se valida con Luhn en el DTO.
+El DTO exige un número válido según Luhn. El simulador aprueba los números válidos que terminan en `4242` y rechaza cualquier otra terminación.
 
-**Consulta del boleto.** `GET /api/bookings/{code}?lastName=…` devuelve el boleto cuando coinciden el código y el apellido. El boleto también se muestra al confirmar.
+**Consulta del boleto.** `GET /api/bookings/{code}?lastName=…` devuelve el boleto cuando coinciden el código y el apellido. La comparación del apellido conserva los acentos e ignora mayúsculas. El código inexistente y el apellido distinto devuelven el mismo `404 BOOKING_NOT_FOUND`. El boleto también se muestra al confirmar.
 
 ### 4.5. Expiración del bloqueo
 
@@ -259,7 +260,7 @@ El número se valida con Luhn en el DTO.
 | Frente a la confirmación | La confirmación exige `hold_expires_at > now()`: o gana el barrido o gana la confirmación, nunca ambos. |
 | Cliente | La cuenta regresiva se calcula con `holdExpiresAt` y `serverNow` del servidor, nunca con un temporizador local como fuente de verdad. |
 
-`HOLD_TTL_SECONDS` vale 300 por defecto y 30 para demostraciones. `now()` devuelve la hora de inicio de cada transacción corta. La operación considera vencido el bloqueo cuando `hold_expires_at <= now()`, aunque la fila siga `HELD` hasta que el barrido o una adquisición la modifique. Varios barridos simultáneos pueden ejecutarse sin coordinación. Solo la transacción que modifica la fila publica su cambio tras el *commit*.
+`HOLD_TTL_SECONDS` vale 300 por defecto y puede ajustarse a 30 para demostraciones. `now()` devuelve la hora de inicio de la transacción. La operación considera vencido el bloqueo cuando `hold_expires_at <= now()`, aunque la fila siga `HELD` hasta que el barrido o una adquisición la modifique. El temporizador evita pasadas solapadas dentro del proceso. Las pruebas pueden desactivar el barrido automático con `SWEEP_INTERVAL_MS=0`.
 
 **Quién libera un bloqueo.** Con el alcance actual, un bloqueo se libera solo por estas vías:
 
@@ -281,7 +282,7 @@ La administración **no** libera ni confirma bloqueos de forma manual: el dashbo
 
 1. El servidor agrega el socket a la sala y después lee la instantánea. Para un vuelo, usa una transacción corta de solo lectura `REPEATABLE READ` para obtener juntos `flight`, `seats`, `myHold` y `serverNow`.
 2. El cliente fusiona cada recurso por `version`, incluso si recibió un evento antes del *ack*. Para un bloqueo propio, aplica el dato de titularidad solo cuando la versión coincide con el asiento vigente. Una instantánea sin `myHold` puede limpiar un bloqueo local de la misma versión o anterior, incluso si el asiento sigue `HELD` hasta el barrido.
-3. La vista muestra carga hasta la primera instantánea y muestra «sin conexión» ante una caída. Un *ack* fallido o ausente muestra un error con reintento mediante una nueva conexión.
+3. El detalle muestra carga hasta la primera instantánea y conserva el inventario durante una caída. El listado espera el *ack* de `search` antes de su primera consulta REST. Un *ack* fallido o ausente después de 10 s muestra un error con reintento mediante una nueva conexión.
 
 Suscribirse antes de leer evita una ventana entre la lectura y la suscripción. La difusión del MVP es de mejor esfuerzo. Si se pierde un evento, una nueva instantánea recupera el estado persistido. Una pestaña que permanece visible y conectada puede conservar un dato desactualizado hasta la siguiente sincronización o hasta recibir una versión posterior de ese recurso. [Garantías de Socket.IO](https://socket.io/docs/v4/delivery-guarantees#at-most-once).
 
@@ -324,13 +325,14 @@ sequenceDiagram
 | Eventos duplicados o desordenados | Se ignoran los de versión menor o igual |
 | Dashboard desincronizado del mapa | Los contadores son un `computed()` del mismo almacén |
 | Pérdida silenciosa sin desconexión | Volver a primer plano renueva una conexión activa para consultar el estado actual. En búsquedas se repite la consulta vigente después del *ack*. |
-| Tráfico REST bajo carga | Ninguno: los eventos no disparan consultas |
+| Tráfico de búsqueda | Se consulta por REST al confirmar filtros y tras el *ack* de `search` cuando hay una consulta activa. Cada evento actualiza el almacén directamente. |
 
 ### 4.7. Cambios de estado de vuelos (HU1)
 
 | Aspecto | Decisión |
 | --- | --- |
 | Estados operativos | `SCHEDULED`, `DELAYED`, `CANCELLED` (campo `status`, cambia desde administración) |
+| Transiciones | `SCHEDULED → DELAYED o CANCELLED` y `DELAYED → CANCELLED`. Repetir el estado actual devuelve `200` con la misma versión y sin evento. Una transición inválida devuelve `409 INVALID_FLIGHT_TRANSITION`. |
 | Agotado | Campo propio `sold_out` (boolean), separado de `status`: un vuelo `DELAYED` agotado conserva ambos datos. Se marca solo en la confirmación (§4.4) |
 | Evento | `flight.status_changed` con `flightId`, `status`, `soldOut`, `version` |
 | Disparadores | `PATCH /api/admin/flights/{flightId}/status` y, automático, la confirmación que ocupa el último asiento |
@@ -347,11 +349,11 @@ sequenceDiagram
 | --- | --- |
 | Cliente anónimo | `clientId` UUID en `sessionStorage` y estable al recargar. Para probar dos clientes, se abren dos pestañas independientes desde la barra de direcciones o dos contextos de navegador. Es un secreto de portador y se envía como `X-Client-Id` (REST) y `auth.clientId` (Socket.IO). |
 | Titularidad del bloqueo | `holdToken` aleatorio, se usa junto al identificador del titular para confirmar o liberar |
-| Administración | `AdminTokenGuard` con `ADMIN_TOKEN` y comparación mediante `timingSafeEqual`. En desarrollo el valor por defecto es `aeropulse-admin-dev`. En producción (`NODE_ENV=production`), el arranque exige un token configurado distinto del valor de desarrollo. |
-| Límite de tasa | `@nestjs/throttler` global, con un límite más estricto en `hold`, confirmación y `/api/admin` |
+| Administración | `AdminTokenGuard` compara los hashes SHA-256 del token recibido y `ADMIN_TOKEN` con `timingSafeEqual`. Un token inválido o ausente recibe `401` con `WWW-Authenticate: Bearer`. El frontend conserva el token del panel en memoria. En desarrollo el valor por defecto es `aeropulse-admin-dev`. En producción (`NODE_ENV=production`), el arranque exige un token configurado distinto del valor de desarrollo. |
+| Límite de tasa | `@nestjs/throttler` global, con un límite más estricto en `hold`, confirmación y `/api/admin`. El contador es **por ruta y por IP** (ventana de 60 s; `trust proxy` toma la IP real detrás de Nginx), no un total compartido entre rutas. Valores por defecto, por minuto: global 120, `hold` 30, confirmación 10 y `/api/admin` 30; se ajustan con `RATE_LIMIT_GLOBAL`, `RATE_LIMIT_HOLD`, `RATE_LIMIT_CONFIRM` y `RATE_LIMIT_ADMIN`. Al superarlo responde `429 RATE_LIMITED` con `Retry-After`. El límite de `/api/admin` se aplica antes de autenticar. El *gateway* de Socket.IO no se limita. |
 | Cabeceras | `helmet` |
-| WebSocket | `join` solo acepta `search` y `flight:{uuid}`; cualquier otra sala se rechaza |
-| Validación | `ValidationPipe` con `whitelist` y `forbidNonWhitelisted`; Luhn en el DTO de pago |
+| WebSocket | `join` solo acepta `search` y `flight:{uuid}` con UUID v4. `auth.clientId` es opcional para lectura pública y se valida como UUID v4 cuando se envía. |
+| Validación | `ApiValidationPipe` aplica validación estricta y el filtro HTTP traduce los errores al contrato. Los encabezados inválidos se señalan con `header.<nombre>` y el DTO de pago valida Luhn. [Contrato de errores](handoff/contracts-and-open-questions.md#catálogo-de-errores) |
 | Datos de pago | Ver §4.4 |
 | Espectador (HU4) | Lectura pública; el cambio de estado exige el token |
 
@@ -365,7 +367,7 @@ sequenceDiagram
 | Backend | NestJS con TypeScript | Módulos e inyección de dependencias para delimitar los casos de uso, con controladores HTTP y gateway Socket.IO en el mismo proceso. |
 | Persistencia | PostgreSQL 17 | Transacciones, restricciones y reloj único |
 | ORM | TypeORM 1.1.3 con `@nestjs/typeorm` 11.0.3 y `pg` | Integración documentada por NestJS, sin binarios por plataforma. Entidades decoradas en `libs/persistence`; el SQL crítico va con `QueryBuilder.returning()`. `synchronize` siempre en `false`. Es una versión mayor reciente y el riesgo es la sintaxis heredada de la 0.3: se mitiga con pruebas contra PostgreSQL real. Alternativa si el SQL con el ORM da fricción: `pg` con SQL explícito detrás del mismo módulo |
-| Versiones de TypeScript y NestJS | TypeScript `~5.9.3` y NestJS 11.2.x en todo el monorepo | `@angular/build` 21 solo admite TypeScript `>=5.9 <6.0` y NestJS 12 exige 6.0; una sola versión evita dos TypeScript en un mismo *lockfile*. NestJS 11 sigue recibiendo parches (etiqueta `legacy` de npm). Migrar a NestJS 12 queda atado a Angular 22. *(Rangos consultados en npm el 2026-11-18.)* |
+| Versiones de TypeScript y NestJS | TypeScript `~5.9.3` en todo el monorepo y NestJS 11.2.x en backend | Los manifiestos y el lockfile fijan una versión de TypeScript compatible con el compilador y el *builder* de Angular 21 y la compilación del backend con webpack. |
 | Bus de eventos | `EventBus` en proceso (`Subject` de RxJS), tras el *commit* | Sin infraestructura adicional; nunca anuncia un cambio revertido |
 | Protocolo de tiempo real | Socket.IO sobre WebSocket | Las salas separan el listado y el inventario de cada vuelo. `join` y su *ack* permiten obtener una instantánea antes de depender de las actualizaciones. |
 | Estado y caché | PostgreSQL como fuente de verdad y almacén de vista en memoria en Angular | El estado del cliente se reconstruye desde el servidor. La API consulta PostgreSQL y mantiene el bus en proceso. Una caché compartida añadiría otro estado que invalidar. |
@@ -396,19 +398,19 @@ docker compose up --build
 
 - **Orden de arranque:** `depends_on` con condiciones (`service_healthy`, `service_completed_successfully`), sin esperas fijas. El *healthcheck* de la API usa Node (`fetch`) porque la imagen no trae `curl`.
 - **Base de datos:** la imagen oficial, datos en el volumen `pgdata` (`docker compose down -v` reinicia desde cero), columnas `timestamptz`, sin puerto publicado para no chocar con un PostgreSQL local. Un script de `docker/db-init` crea el rol `app` (solo se ejecuta con el volumen vacío); las migraciones le conceden lectura y escritura de datos. Credenciales de desarrollo con valores por defecto (`${VAR:-default}`) y un `.env.example`.
-- **Datos iniciales:** el *seed* identifica cada vuelo por número e instante exacto de salida en UTC. Al reejecutarse, conserva los registros existentes. Los vuelos se generan desde hoy hasta el último día del mes en curso, según las salidas futuras disponibles. El formulario precarga una fecha con resultados cuando los hay. El catálogo incluye el vuelo de demostración de seis asientos. [Reglas de negocio](business-rules.md) · [Clave del seed](persistence.md#migraciones-y-responsabilidades).
+- **Datos iniciales:** el *seed* identifica cada vuelo por número e instante exacto de salida en UTC. Al reejecutarse, conserva los registros existentes. Genera salidas futuras desde hoy hasta el último día del mes en curso. La búsqueda inicia con `BOG → MDE` y el día UTC actual. Si queda vacía, prueba el día siguiente cuando está en el mismo mes. El catálogo incluye `AP105`, el vuelo de demostración de seis asientos. [Reglas de negocio](handoff/business-rules.md) · [Clave del seed](handoff/persistence.md#migraciones-y-responsabilidades)
 - **Frontend portable:** Nginx sirve los estáticos y hace de proxy inverso de `/api/` y `/ws/` (con `Upgrade` y `proxy_read_timeout` ampliado). El frontend usa rutas relativas: sin URLs fijadas en el *bundle*, sin CORS y con un solo puerto.
 - **Dos modos:** evaluación (`docker compose up --build`) y desarrollo (`npm run db:dev` + `npm run dev`). El Compose de evaluación configura el proceso de la API en modo `development` por defecto porque la demo usa credenciales locales y escucha solo en loopback. Para probar la protección de producción se configura `APP_NODE_ENV=production` y un `ADMIN_TOKEN` distinto del token local. La variante de desarrollo carga `compose.dev.yaml` con `-f` para publicar PostgreSQL en `5433`.
 - **Trampas conocidas:** `.gitattributes` con `eol=lf` (CRLF en Windows), `.dockerignore` con `node_modules`/`dist`/`.angular`, `typescript` fijado en `~5.9.3`, `package-lock.json` versionado, solo imágenes multiarquitectura.
-- **Sin Docker:** el README documenta la ejecución manual (Node.js ≥ 24.11, PostgreSQL, `npm ci`, `npm run db:migrate`, `npm run dev`).
+- **Con PostgreSQL externo:** el README documenta los roles y las variables para ejecutar migraciones, API y frontend desde el host con Node.js 24. [Desarrollo local](../README.md#desarrollo-local)
 
-**Verificación antes de entregar.** Clonar en un directorio nuevo sin sesión de GitHub y ejecutar `docker compose up --build` sin `.env`. Comprobar `GET /api/health`, validar el flujo de dos clientes y confirmar que hay un vuelo de demostración futuro con sus seis asientos disponibles. Si el último horario del mes UTC ya pasó, el *seed* respeta su ventana y la prueba de agotamiento se verifica con datos controlados de integración. En el entorno desechable de verificación, reiniciar con `docker compose down -v` y repetir.
+**Verificación de entrega.** La prueba de `develop` arrancó en clones nuevos sin `.env` con un volumen de datos vacío. El registro M5 incluye la comprobación de salud, la demostración de dos clientes y los seis asientos de `AP105`. Si el último horario del mes UTC ya pasó, la prueba de agotamiento puede ejecutarse con los datos controlados de integración. [Registro de clon limpio](handoff/evidence/README.md#8--verificación-desde-un-clon-limpio)
 
 ---
 
 ## 8. Pruebas
 
-Las pruebas de concurrencia usan PostgreSQL 17 real con Testcontainers y los mismos roles de Compose. Las pruebas de componentes con el adaptador falso ayudan al desarrollo del frontend. La evidencia final se obtiene con el stack integrado en M5.
+Las pruebas de concurrencia usan PostgreSQL 17 real con Testcontainers y los mismos roles de Compose. El frontend desplegado usa REST y Socket.IO reales. Los simuladores HTTP y de socket se conservan en las pruebas. La evidencia de navegador y API está en el [registro M5](handoff/evidence/README.md) y los resultados de build, lint, formato y pruebas en [Calidad y entrega](handoff/checklist.md#8-calidad-y-entrega).
 
 | Prioridad | Prueba | Demuestra |
 | --- | --- | --- |
@@ -427,15 +429,15 @@ Las pruebas de concurrencia usan PostgreSQL 17 real con Testcontainers y los mis
 
 ## 9. Experiencia de usuario
 
-El enunciado evalúa explícitamente el diseño de la experiencia. Criterios mínimos:
+La interfaz implementa los siguientes comportamientos:
 
-- **Mapa de asientos:** cuadrícula con pasillo; cada estado con **color, icono y etiqueta** (no solo color); navegable con teclado y con `aria-label` por asiento («12A, disponible»).
-- **Mi asiento:** resaltado propio, cuenta regresiva visible y aviso al vencer.
-- **Conflictos:** mensaje claro ante `409` («Alguien tomó ese asiento»), sin recargar.
-- **Conexión:** banner «sin conexión» y aviso al restablecerse.
-- **Estados de carga, vacío y error** en búsqueda, mapa y checkout; *skeletons* en la primera carga.
-- **Adaptable:** usable desde 360 px de ancho.
-- **Checkout:** pago ficticio con las tarjetas de prueba visibles y el boleto con el código de reserva.
+- **Mapa de asientos.** Cuadrícula con pasillo, estados diferenciados por color, icono y etiqueta, y botones operables con teclado cuyo texto visible aporta el código y el estado al nombre accesible.
+- **Mi asiento.** Resaltado propio, cuenta regresiva visible y aviso al vencer. El reloj del navegador mide solo el tiempo transcurrido desde la muestra del servidor.
+- **Conflictos.** Ante `SEAT_UNAVAILABLE`, el mapa muestra «El asiento ya no está disponible.» y solicita una nueva instantánea.
+- **Conexión.** El listado muestra «Sin conexión» y «Conexión restablecida». El detalle conserva la última instantánea al desconectarse y ofrece reintento.
+- **Carga y errores.** La búsqueda muestra carga inicial, resultados vacíos y reintento. El detalle muestra el mensaje «Cargando asientos…» antes del primer inventario. El checkout indica el estado del envío y ofrece volver al mapa cuando vence el bloqueo.
+- **Checkout.** Muestra las tarjetas de prueba y el boleto con código de reserva. Si la respuesta es incierta, permite reintentar en la misma vista con la misma clave de idempotencia.
+- **Accesibilidad y ancho de pantalla.** El carril frontend verificó el teclado, el foco y la interfaz a 360 y 1366 px. [Registro F5](handoff/frontend.md#f5--2026-11-19)
 
 ---
 
@@ -445,7 +447,7 @@ El enunciado evalúa explícitamente el diseño de la experiencia. Criterios mí
 | --- | --- | --- |
 | Varias instancias de la API | `@socket.io/redis-adapter` y `EventBus` sobre Redis pub/sub | Cambian `realtime` y el adaptador del bus; el dominio no cambia |
 | Aislar administración o escalar cada audiencia | Dividir en dos aplicaciones sobre el mismo dominio, con el bus sobre `LISTEN/NOTIFY` (`pg_notify` dentro de una transacción solo se entrega si hay *commit*) y un rol de base de datos por aplicación (el esquema de roles ya existe) | Estimado en 3–4 h; el dominio no se reescribe |
-| Mayor volumen de bloqueos | Bloqueos en Redis (`SET NX PX`) con PostgreSQL como registro de reservas | Cambia la persistencia de asientos |
+| Mayor volumen de bloqueos | Medir la contención de filas y el costo del barrido antes de cambiar la persistencia | Cualquier cambio debe preservar la atomicidad del bloqueo y la confirmación |
 | Garantía de entrega de eventos | *Transactional outbox* | Los eventos se escriben en la misma transacción |
 | Proveedor de pago real | Adaptador nuevo de `PaymentGateway`; estado `PAYING` con `payment_deadline`; tabla `payments`; `refund()` como compensación; conciliación y *webhooks* | Un cobro externo ya no cabe en una transacción |
 | Usuarios y roles reales | JWT en lugar del token estático | Cambia `AdminTokenGuard` |

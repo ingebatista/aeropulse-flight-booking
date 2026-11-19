@@ -1,6 +1,6 @@
 # Seguimiento del carril backend (Claude)
 
-Este archivo es el brief del carril y su registro de avance. Solo lo edita el carril backend. Las casillas de [la checklist](../checklist.md) las marca el integrador a partir de la evidencia que anotes aquí.
+Este archivo es el brief del carril y su registro de avance. Solo lo edita el carril backend. Las casillas de [la checklist](checklist.md) las marca el integrador a partir de la evidencia que anotes aquí.
 
 ## Alcance
 
@@ -9,12 +9,12 @@ Este archivo es el brief del carril y su registro de avance. Solo lo edita el ca
 | Rama | `lane/backend` |
 | Carpeta | `B:\PROYECTOS\DAVIVIENDA\worktrees\lane-backend` |
 | Puedes editar | `backend/**`, este archivo y tu subsección de `docs/ia.md` |
-| No puedes editar | `frontend/**`, `packages/shared`, `package.json` y `package-lock.json` de la raíz, `docs/checklist.md` ni los documentos de diseño |
+| No puedes editar | `frontend/**`, `packages/shared`, `package.json` y `package-lock.json` de la raíz, `docs/handoff/checklist.md` ni los documentos de diseño |
 
 ## Antes de empezar
 
 1. Lee `AGENTS.md` completo, en especial las **8 invariantes de concurrencia** y la tabla de TypeORM 1.x.
-2. Lee [architecture.md](../architecture.md) §3 a §5, [persistence.md](../persistence.md) y [contracts-and-open-questions.md](../contracts-and-open-questions.md).
+2. Lee [architecture.md](../architecture.md) §3 a §5, [persistence.md](persistence.md) y [contracts-and-open-questions.md](contracts-and-open-questions.md).
 3. Ejecuta `npm ci` y `npm run build` en tu worktree. Docker debe estar activo: las pruebas usan Testcontainers.
 4. Comprueba que `packages/shared` trae la etiqueta `contracts-v1` en tu historia (`git describe --tags`).
 

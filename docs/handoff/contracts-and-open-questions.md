@@ -1,6 +1,6 @@
 # Contratos entre frontend y backend
 
-**Estado: diseño cerrado para la kata.** Aquí se definen las rutas, los formatos y el comportamiento observable. La implementación y sus pruebas se siguen en la checklist. El diseño técnico y las reglas del catálogo se describen en [architecture.md](architecture.md) y [business-rules.md](business-rules.md).
+**Estado: diseño cerrado para la kata.** Aquí se definen las rutas, los formatos y el comportamiento observable. La implementación y sus pruebas se siguen en la checklist. El diseño técnico y las reglas del catálogo se describen en [architecture.md](../architecture.md) y [business-rules.md](business-rules.md).
 
 ## Convenciones y validaciones
 
@@ -74,7 +74,7 @@ Ejemplo de cuerpo para confirmar, con una tarjeta ficticia y todos los campos ob
 
 ## Catálogo de errores
 
-HTTP devuelve el estado correspondiente y un objeto `{ "error": { "code": "...", "message": "..." } }`. El frontend toma decisiones por `code`. `VALIDATION_ERROR` agrega `fields` con entradas `{ field, reason }`. `reason` es uno de `REQUIRED`, `INVALID`, `UNEXPECTED` o `DUPLICATE`. Los campos se identifican por nombre, por ejemplo `query.date` o `body.passenger.lastName`, y el error nunca repite el valor recibido.
+HTTP devuelve el estado correspondiente y un objeto `{ "error": { "code": "...", "message": "..." } }`. El frontend toma decisiones por `code`. `VALIDATION_ERROR` agrega `fields` con entradas `{ field, reason }`. `reason` es uno de `REQUIRED`, `INVALID`, `UNEXPECTED` o `DUPLICATE`. Los campos se identifican por nombre con un prefijo según su origen: `query.*`, `param.*`, `body.*` y `header.<nombre>`. Los encabezados se nombran en minúscula, por ejemplo `header.x-client-id` o `header.x-hold-token`. Ejemplos: `query.date` o `body.passenger.lastName`. El error nunca repite el valor recibido.
 
 ```json
 {
@@ -94,6 +94,7 @@ HTTP devuelve el estado correspondiente y un objeto `{ "error": { "code": "...",
 | 404 | `FLIGHT_NOT_FOUND` | El identificador del vuelo no existe. |
 | 404 | `SEAT_NOT_FOUND` | El vuelo existe, pero el código no corresponde a uno de sus asientos. |
 | 404 | `BOOKING_NOT_FOUND` | El código y el apellido no identifican un boleto. |
+| 404 | `NOT_FOUND` | La ruta no existe. |
 | 409 | `FLIGHT_CANCELLED` | Se intenta bloquear o confirmar un asiento en un vuelo cancelado. |
 | 409 | `SEAT_UNAVAILABLE` | El asiento está reservado o tiene un bloqueo vigente de otro cliente. |
 | 409 | `HOLD_INACTIVE` | No hay un bloqueo vigente que coincida en asiento, cliente y token al confirmar. El frontend descarta el bloqueo local si coincide con el token que envió y pide seleccionar un asiento de nuevo si no hay otro bloqueo vigente. |

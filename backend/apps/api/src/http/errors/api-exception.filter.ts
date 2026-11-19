@@ -54,9 +54,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
       return ApiError.validation([{ field, reason: 'INVALID' }]);
     }
 
-    // Ruta inexistente. Provisional hasta resolver CCR-1 (no hay código NOT_FOUND en el contrato).
+    // Ruta inexistente.
     if (exception instanceof NotFoundException) {
-      return new ApiError('INTERNAL_ERROR', 'El recurso solicitado no existe.', undefined, 404);
+      return new ApiError('NOT_FOUND', 'El recurso solicitado no existe.');
     }
 
     // Otros errores 4xx de body-parser (cuerpo demasiado grande, codificación no admitida).
