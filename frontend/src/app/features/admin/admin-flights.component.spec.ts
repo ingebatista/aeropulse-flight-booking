@@ -43,7 +43,12 @@ describe('Administración y estado de vuelos', () => {
       return {
         connect: () => callbacks.connect(),
         disconnect: () => undefined,
-        join: (_room, ack) => ack({ ok: true, data: { serverNow } }),
+        join: (room, ack) =>
+          ack({
+            ok: true,
+            data:
+              room === 'search' ? { serverNow } : { flight, seats: [], myHold: null, serverNow },
+          }),
       };
     };
     TestBed.configureTestingModule({
@@ -173,14 +178,52 @@ describe('Administración y estado de vuelos', () => {
     expect(page().querySelector('[data-status="CANCELLED"]')).not.toBeNull();
   });
 
-  it('ofrece ocupación y el acceso administrativo desde la vista pública de estado', async () => {
+  it('vuelve al panel administrativo tras abrir la ocupación y visitar el mapa', async () => {
+    await openAdmin();
+    page().querySelector<HTMLAnchorElement>('.flight__actions a')!.click();
+    await harness.fixture.whenStable();
+    expect(page().querySelector('#occupancy-title')?.textContent).toContain('Ocupación del vuelo');
+
+    page().querySelector<HTMLAnchorElement>('.detail-nav a')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe(`/vuelos/${flight.id}/asientos?from=admin`);
+    page().querySelector<HTMLAnchorElement>('.detail-nav__occupancy')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe(`/vuelos/${flight.id}/ocupacion?from=admin`);
+
+    const back = page().querySelector<HTMLAnchorElement>('.back')!;
+    expect(back.textContent).toContain('Volver a administración');
+    back.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/admin');
+    http.expectOne(searchUrl).flush({ flights: [flight] });
+    harness.detectChanges();
+    expect(page().querySelector('.admin-tools button')?.textContent).toContain('Cerrar sesión');
+  });
+
+  it('pide acceso al regresar a administración si la sesión ya terminó', async () => {
+    await harness.navigateByUrl(`/vuelos/${flight.id}/ocupacion?from=admin`);
+    page().querySelector<HTMLAnchorElement>('.back')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/admin/acceso');
+  });
+
+  it('ofrece el acceso administrativo y regresa desde ocupación a la vista pública de estado', async () => {
+    TestBed.inject(AdminSession).start('token-de-test');
     await harness.navigateByUrl('/estado-de-vuelos');
     http.expectOne(searchUrl).flush({ flights: [{ ...flight, soldOut: false }] });
     harness.detectChanges();
     expect(page().querySelector('.search-page--public')).toBeNull();
     expect(page().querySelector('h1')?.textContent?.trim()).toBe('Estado de vuelos');
     expect(page().querySelector('a[href="/admin"]')).not.toBeNull();
-    expect(page().querySelector(`a[href="/vuelos/${flight.id}/ocupacion"]`)).not.toBeNull();
     expect(page().querySelector('.flight__choose')).toBeNull();
+
+    page().querySelector<HTMLAnchorElement>('.flight__actions a')!.click();
+    await harness.fixture.whenStable();
+    expect(page().querySelector('#occupancy-title')?.textContent).toContain('Ocupación del vuelo');
+    page().querySelector<HTMLAnchorElement>('.back')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/estado-de-vuelos');
+    http.expectOne(searchUrl).flush({ flights: [flight] });
   });
 });

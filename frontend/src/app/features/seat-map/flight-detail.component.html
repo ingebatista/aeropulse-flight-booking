@@ -1,5 +1,6 @@
 <div class="detail-page">
-  <a class="back" routerLink="/">← Volver a la búsqueda</a>
+  @let back = backLink();
+  <a class="back" [routerLink]="back.path">← {{ back.label }}</a>
   @let state = connection();
   <div class="detail-heading">
     <div>
@@ -33,12 +34,17 @@
     <p class="notice" role="alert">No se encontró el vuelo.</p>
   } @else if (inventory(); as current) {
     <nav class="detail-nav" aria-label="Opciones del vuelo">
-      <a routerLink="asientos" routerLinkActive="selected" ariaCurrentWhenActive="page"
+      <a
+        routerLink="asientos"
+        queryParamsHandling="preserve"
+        routerLinkActive="selected"
+        ariaCurrentWhenActive="page"
         >Mapa de asientos</a
       >
       <a
         class="detail-nav__occupancy"
         routerLink="ocupacion"
+        queryParamsHandling="preserve"
         routerLinkActive="selected"
         ariaCurrentWhenActive="page"
         >Ocupación</a

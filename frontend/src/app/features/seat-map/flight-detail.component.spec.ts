@@ -131,6 +131,7 @@ describe('Mapa y ocupación de un vuelo', () => {
     expect(seatButton('1A').textContent).toContain('Bloqueado');
 
     await harness.navigateByUrl(`${path}/ocupacion`);
+    expect(page().querySelector('.back')?.getAttribute('href')).toBe('/');
     expect(sockets).toHaveLength(1);
     expect(page().querySelectorAll('.cabin .seat')).toHaveLength(24);
     expect(page().querySelector('button.seat')).toBeNull();

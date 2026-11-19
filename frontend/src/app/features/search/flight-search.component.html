@@ -1,4 +1,5 @@
 @let publicSearch = !statusView && !flightActions();
+@let occupancySource = flightActions() ? 'admin' : statusView ? 'estado-de-vuelos' : null;
 
 <div class="search-page" [class.search-page--public]="publicSearch">
   <div class="page-heading">
@@ -248,7 +249,9 @@
               <strong>{{ fare(flight.fareCop) }}</strong>
             </div>
             <div class="flight__actions">
-              <a [routerLink]="['/vuelos', flight.id, 'ocupacion']"
+              <a
+                [routerLink]="['/vuelos', flight.id, 'ocupacion']"
+                [queryParams]="{ from: occupancySource }"
                 >Ver ocupación<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span></a
               >
               @if (flightActions(); as actions) {
