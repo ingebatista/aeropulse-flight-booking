@@ -8,6 +8,7 @@ Este documento cubre los cuatro puntos que pide la kata: herramientas, prompts y
 | --- | --- | --- |
 | Claude Code (CLI y app de escritorio) | Claude Sonnet 5.5 en la mayoría de los commits y Claude Opus 5.5 en tres de ellos (según el pie `Co-Authored-By` de cada commit) | Diseño y contratos, carril backend (`backend/**`), integración en `develop`, evidencias y documentación |
 | Codex (app de escritorio) | `gpt-6.2-astra`, `gpt-6.2-sol` y `gpt-6.1-terra`, según los metadatos de la sesión del carril. `gpt-6.2-sol` fue el más utilizado | Carril frontend (`frontend/**`), de F1 a F5 |
+| Google Stitch (proyecto *AeroPulse Flight Search Web*, tipo *text-to-UI*) y su servidor MCP | El que asigna Stitch; la herramienta no lo expone | Mockups de escritorio y móvil de las ocho vistas, sistema visual de [DESIGN.md](../DESIGN.md) y consulta de los diseños desde los agentes durante la implementación del frontend. [Detalle](#diseño-de-interfaz-con-google-stitch) |
 | Navegador integrado, Chrome y Lighthouse | No aplica | Revisión de la interfaz a 360 y 1366 px y auditoría de accesibilidad de F5 (resultados en [handoff/frontend.md](handoff/frontend.md)) |
 
 Según las reglas del proyecto, el humano (integrador) revisa la evidencia de cada hito y lo fusiona en `develop`.
@@ -30,6 +31,16 @@ Fragmentos reales de esos briefs:
 - _«Las respuestas, los eventos y los códigos de error coinciden con los contratos. Si algo no encaja, no lo cambies en silencio: abre un `CCR`.»_ (carril backend).
 - _«Nunca *check-then-act*. Bloquear, liberar, expirar y confirmar un asiento son una sola sentencia `UPDATE` condicional con `RETURNING`.»_ (invariante 1 de `AGENTS.md`).
 
+### Diseño de interfaz con Google Stitch
+
+La experiencia de usuario se diseñó antes de escribir el frontend, en tres pasos:
+
+1. **Prompts de diseño.** Redacté un bloque base con el contexto, la paleta, la tipografía, la composición responsive y el vocabulario de estados, y un prompt por vista para las ocho pantallas del flujo: búsqueda, resultados, mapa de asientos, ocupación, confirmación, boleto, consulta y administración. Cada prompt usa los mismos datos de ejemplo (`AP103`, asiento `2A`) para que las vistas encajen entre sí. [Prompts de mockups](mockups-stitch-prompts.md)
+2. **Generación en Stitch.** Con esos prompts, Google Stitch generó los mockups de escritorio y de móvil de cada vista en un [proyecto público](https://stitch.withgoogle.com/projects/9552478381435950379). Un prompt de unificación (09) alineó las ocho vistas con una sola cabecera, navegación y biblioteca de componentes, y uno de corrección (10) rehízo el contenedor de asientos. El sistema visual resultante quedó versionado en [DESIGN.md](../DESIGN.md).
+3. **Implementación conectada por MCP.** Conecté el proyecto de Stitch a los agentes de código mediante su servidor MCP. Así, el agente podía consultar las pantallas, su HTML de referencia y el `DESIGN.md` del proyecto mientras implementaba los componentes Angular, en lugar de reconstruir el diseño desde capturas. La configuración del servidor (`.mcp.json`) es local y está fuera del repositorio porque contiene una clave de API (ver [§3](#integración-oleadas-0-y-1)).
+
+### Registros
+
 Los registros de cada carril incluyen las salidas de los comandos. También se abrieron dos solicitudes de cambio, ambas integradas en `33c81bf`. Se añadió `NOT_FOUND` a `packages/shared` y se declaró `socket.io-client` como dependencia de desarrollo del backend.
 
 ## 3. Refactorización y criterio propio
@@ -41,6 +52,11 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 - **18 de noviembre de 2026.** El primer build del backend en Docker no encontraba `ts-loader`. Lo declaré en el workspace de NestJS y configuré webpack para resolver las dependencias externas instaladas por npm en la raíz. Verifiqué ambos ejecutables con `npm run build` y Docker Compose.
 - **18 de noviembre de 2026.** Ajusté la referencia al esquema de Angular CLI para que apunte al `node_modules` raíz. También corregí las comprobaciones de los exports ESM y CommonJS para ejecutarlas por separado, y usé `localhost:4200` en la prueba del proxy local de Angular. Las comprobaciones pasaron.
 - **18 de noviembre de 2026.** La revisión inicial de concurrencia omitió el interbloqueo al intercambiar asientos con bloqueos vencidos. Revisé el orden de las escrituras y documenté cómo revertir y reintentar la transacción completa. La prueba determinista contra PostgreSQL llegó en M2 (`hold-deadlock.spec.ts`).
+
+### Diseño de interfaz (Google Stitch)
+
+- **Mapa de asientos decorativo.** Stitch dibujó la cabina de mando, el morro, las alas con rótulos de turbina y una banda horizontal extendida alrededor de los asientos. Era vistoso pero ocupaba espacio, desalineaba las columnas y no escalaba a 24 plazas. Lo corregí con el prompt 10: una cuadrícula compacta de 3 + pasillo + 3, con el número de fila en el pasillo, hasta tres filas visibles y desplazamiento vertical interno.
+- **Vistas que no parecían una sola aplicación.** Cada prompt generó su propia variante de cabecera, navegación móvil y componentes. Lo corregí con el prompt 09, que fijó `DESIGN.md` como fuente de verdad y unificó las ocho vistas en sus dos tamaños.
 
 ### Carril backend (Claude)
 
@@ -68,6 +84,14 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 - **19 de noviembre de 2026.** El plan de la oleada 1 incluía añadir al catálogo una tabla de horarios que ya existía en `business-rules.md`. La revisión contra el código evitó duplicarla.
 - **19 de noviembre de 2026.** La simulación del envío comprobó la conexión con GitHub, pero el envío real del usuario activó la protección de secretos. Dejé `.mcp.json` como configuración local de desarrollo y lo retiré del commit que GitHub había rechazado.
 
+### Documentación de entrega (Claude)
+
+- **19 de noviembre de 2026.** Al alinear el README con el enunciado escribí el enlace a la sección 4.7 de la arquitectura como `#37-…`. La validación automática de enlaces y anclas lo detectó antes de cerrar la tarea y lo corregí a `#47-…`.
+- **19 de noviembre de 2026.** Para los requisitos mínimos de `docker compose up --build`, Docker no estaba en ejecución y no pude medir el tamaño de las imágenes. En lugar de presentar cifras de CPU, memoria y disco como mediciones, las dejé como valores de referencia y lo indiqué en el README.
+- **19 de noviembre de 2026.** La primera versión de la guía de sustentación tenía tres datos imprecisos que encontré al contrastarla con este documento y con `architecture.md`. Atribuía las 247 pruebas del backend a la concurrencia, cuando son el total de unitarias y de integración. Decía que no se guarda el CVV, cuando el formulario ni siquiera lo pide. Y proponía escalar con `LISTEN/NOTIFY` y repartiendo el barrido, cuando la evolución documentada (§10) usa Redis. Corregí los tres.
+- **19 de noviembre de 2026.** El humano corrigió la guía de sustentación: la había redactado entera en primera persona, incluido el problema y las historias de usuario, que vienen del enunciado y no son decisiones propias. La reescribí en tercera persona para lo que plantea la kata y en primera solo para lo decidido, construido o corregido.
+- **19 de noviembre de 2026.** Antes de documentar el uso de Google Stitch consulté el proyecto por su servidor MCP para confirmar el nombre, la visibilidad pública y las 16 pantallas (8 vistas en escritorio y móvil). La dirección que tenía a mano apuntaba a `stitch.google.com`, y la corregí al dominio de Stitch, `stitch.withgoogle.com`.
+
 ## 4. Impacto
 
 **Dónde aportó más valor la IA**
@@ -75,6 +99,7 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 - **Pruebas de concurrencia.** El backend reúne 247 pruebas unitarias y de integración. Las de concurrencia usan PostgreSQL real y reproducen 50 `hold` simultáneos sobre un asiento, 20 confirmaciones con la misma `Idempotency-Key` y la compra simultánea de los dos últimos asientos.
 - **Trabajo en paralelo.** Backend y frontend avanzaron a la vez en worktrees distintos con el contrato compartido congelado.
 - **Documentación contrastada.** El diseño, los contratos y la evidencia se mantuvieron enlazados y revisables.
+- **Diseño de interfaz.** Stitch produjo los mockups de escritorio y móvil de las ocho vistas a partir de prompts, y el servidor MCP los puso al alcance de los agentes durante la implementación, sin pasar por capturas ni por una herramienta de diseño manual.
 
 **Dónde exigió más revisión humana**
 

@@ -217,7 +217,24 @@ El mapa de asientos de AeroPulse se rige por un estándar geométrico estricto i
 - **Reconexión**: Al volver la red, se emite el aviso `«Conexión restablecida»` y se refresca el inventario sin perder el foco ni el estado del asiento bloqueado.
 - **Foco visible**: Anillo de foco de 3 px con separación de 2 px (`outline: 2px solid #0474C4; outline-offset: 2px`).
 - **Estados de carga (Skeletons)**: Efecto shimmer animado con la misma silueta y proporción de las tarjetas o asientos finales para evitar movimientos bruscos de layout (CLS = 0).
-Principales novedades incorporadas en esta versión:
-Paleta de Color Oficial: Incorporación de los roles #0474C4, #5379AE, #2C444C, #A8C4EC, #06457F y #262B40.
-Estructura de Cabina 3 + Pasillo + 3: Formalización de la cuadrícula simétrica de 7 columnas, eliminación de adornos del fuselaje, números de fila centrados en el pasillo y especificación de scroll interno vertical para configuraciones de más de 3 filas.
-Mapeo de las 8 Pantallas: Definición clara de tokens de layout, anchos máximos (1120 px en escritorio, 360 px en móvil con márgenes de 16 px) y componentes compartidos entre flujos públicos y protegidos.
+
+---
+
+## 9. Origen del diseño: Google Stitch y MCP
+
+Esta guía es el resultado de diseñar la interfaz con IA antes de implementarla.
+
+| Paso | Qué se hizo | Dónde está |
+| --- | --- | --- |
+| 1. Prompts | Un bloque base con el contexto y el sistema visual, y un prompt por cada una de las ocho vistas, con datos de ejemplo comunes (`AP103`, asiento `2A`). | [Prompts de mockups](docs/mockups-stitch-prompts.md) |
+| 2. Mockups | Google Stitch generó cada vista en escritorio (1440 px) y móvil (360 px). Un prompt de unificación alineó las ocho vistas y otro corrigió el contenedor de asientos. | [Proyecto en Stitch](https://stitch.withgoogle.com/projects/9552478381435950379) |
+| 3. Sistema visual | Los tokens y reglas de esta guía se consolidaron a partir de los mockups aprobados. | Este documento (versión del encabezado) |
+| 4. Implementación | El proyecto de Stitch se conectó por MCP a los agentes de código, que consultaron las pantallas y esta guía al construir los componentes Angular. | [Uso de IA](docs/ia.md#diseño-de-interfaz-con-google-stitch) |
+
+**Fuente de verdad.** Si un mockup de Stitch y esta guía difieren, manda esta guía. El tema base del proyecto de Stitch conserva valores iniciales (por ejemplo, la fuente Inter) que esta versión reemplazó.
+
+### Novedades de la versión 1.2.0
+
+- **Paleta de color oficial:** incorporación de los roles `#0474C4`, `#5379AE`, `#2C444C`, `#A8C4EC`, `#06457F` y `#262B40`.
+- **Cabina 3 + pasillo + 3:** cuadrícula simétrica de 7 columnas, sin adornos del fuselaje, con números de fila centrados en el pasillo y desplazamiento vertical interno para más de 3 filas.
+- **Mapeo de las 8 pantallas:** tokens de layout, anchos máximos (1120 px en escritorio, 360 px en móvil con márgenes de 16 px) y componentes compartidos entre flujos públicos y protegidos.
