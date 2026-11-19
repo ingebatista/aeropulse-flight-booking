@@ -349,7 +349,7 @@ sequenceDiagram
 | --- | --- |
 | Cliente anónimo | `clientId` UUID en `sessionStorage` y estable al recargar. Para probar dos clientes, se abren dos pestañas independientes desde la barra de direcciones o dos contextos de navegador. Es un secreto de portador y se envía como `X-Client-Id` (REST) y `auth.clientId` (Socket.IO). |
 | Titularidad del bloqueo | `holdToken` aleatorio, se usa junto al identificador del titular para confirmar o liberar |
-| Administración | `AdminTokenGuard` compara los hashes SHA-256 del token recibido y `ADMIN_TOKEN` con `timingSafeEqual`. Un token inválido o ausente recibe `401` con `WWW-Authenticate: Bearer`. El frontend conserva el token del panel en memoria. En desarrollo el valor por defecto es `aeropulse-admin-dev`. En producción (`NODE_ENV=production`), el arranque exige un token configurado distinto del valor de desarrollo. |
+| Administración | `AdminTokenGuard` compara los hashes SHA-256 del token recibido y `ADMIN_TOKEN` con `timingSafeEqual`. Un token inválido o ausente recibe `401` con `WWW-Authenticate: Bearer`. El frontend conserva el token del panel en memoria. En desarrollo el valor por defecto es `AeroPlus-admin-dev`. En producción (`NODE_ENV=production`), el arranque exige un token configurado distinto del valor de desarrollo. |
 | Límite de tasa | `@nestjs/throttler` global, con un límite más estricto en `hold`, confirmación y `/api/admin`. El contador es **por ruta y por IP** (ventana de 60 s; `trust proxy` toma la IP real detrás de Nginx), no un total compartido entre rutas. Valores por defecto, por minuto: global 120, `hold` 30, confirmación 10 y `/api/admin` 30; se ajustan con `RATE_LIMIT_GLOBAL`, `RATE_LIMIT_HOLD`, `RATE_LIMIT_CONFIRM` y `RATE_LIMIT_ADMIN`. Al superarlo responde `429 RATE_LIMITED` con `Retry-After`. El límite de `/api/admin` se aplica antes de autenticar. El *gateway* de Socket.IO no se limita. |
 | Cabeceras | `helmet` |
 | WebSocket | `join` solo acepta `search` y `flight:{uuid}` con UUID v4. `auth.clientId` es opcional para lectura pública y se valida como UUID v4 cuando se envía. |
@@ -428,6 +428,8 @@ Las pruebas de concurrencia usan PostgreSQL 17 real con Testcontainers y los mis
 ---
 
 ## 9. Experiencia de usuario
+
+**Diseño previo a la implementación.** Las ocho vistas se diseñaron primero como mockups de escritorio (1440 px) y móvil (360 px) en Google Stitch, a partir de [prompts versionados](mockups-stitch-prompts.md). El sistema visual resultante (paleta, tipografía, cuadrícula, estados del inventario y componentes) está en [DESIGN.md](../DESIGN.md), que es la fuente de verdad del frontend. Durante la implementación, el proyecto de Stitch se consultó desde los agentes de código mediante su servidor MCP. [Uso de IA](ia.md#diseño-de-interfaz-con-google-stitch)
 
 La interfaz implementa los siguientes comportamientos:
 

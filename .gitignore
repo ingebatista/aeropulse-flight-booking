@@ -8,5 +8,8 @@ coverage/
 .env.*
 !.env.example
 
+# Configuración local de desarrollo
+/.mcp.json
+
 # Editor
 .vscode/

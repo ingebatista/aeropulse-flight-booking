@@ -1,9 +1,192 @@
 .admin-tools {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-.admin-tools p {
+.admin-toolbar,
+.admin-detail-header,
+.admin-flight-top,
+.admin-occupancy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.admin-toolbar {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #eef1fb;
+}
+
+.admin-toolbar p,
+.admin-feedback p,
+.admin-detail p,
+.admin-detail h3,
+.admin-detail h4,
+.admin-schedule,
+.admin-schedule dd {
+  margin: 0;
+}
+
+.admin-tools .booking-alert,
+.admin-feedback p {
   margin: 8px 0 0;
+}
+
+.admin-board {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.9fr) minmax(0, 1.55fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.admin-flight-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-flight-option {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-control);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-navy);
+  text-align: left;
+}
+
+.admin-flight-option:hover,
+.admin-flight-option[aria-pressed='true'] {
+  background: #e8f2fd;
+}
+
+.admin-flight-option[aria-pressed='true'] {
+  border-color: var(--color-primary-hover);
+  box-shadow: inset 4px 0 var(--color-primary-hover);
+}
+
+.admin-flight-top strong {
+  font-size: 18px;
+}
+
+.admin-flight-time {
+  color: var(--color-body);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #e4f6ee;
+  color: #19573c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-badge[data-status='DELAYED'] {
+  background: #fff2cf;
+  color: #795000;
+}
+
+.status-badge[data-status='CANCELLED'] {
+  background: var(--color-error-background);
+  color: #7f251f;
+}
+
+.status-badge[data-status='SOLD_OUT'] {
+  background: #e0e9ee;
+  color: #344e60;
+}
+
+.admin-detail {
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 1px solid var(--color-outline);
+  border-top: 4px solid var(--color-primary-hover);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 16px #262b400d;
+}
+
+.admin-detail-header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.admin-detail-header p:first-child {
+  color: var(--color-primary-hover);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-detail h3 {
+  color: var(--color-navy);
+  font-size: 29px;
+  line-height: 1.25;
+}
+
+.admin-route {
+  font-weight: 700;
+}
+
+.admin-statuses,
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--color-background);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-schedule dt {
+  font-size: 13px;
+}
+
+.admin-schedule dd {
+  color: var(--color-navy);
+  font-weight: 700;
+}
+
+.admin-occupancy {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #eef1fb;
+}
+
+.admin-occupancy a {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.admin-controls {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-outline);
+}
+
+.admin-controls h4 {
+  margin-bottom: 8px;
+  color: var(--color-navy);
+  font-size: 16px;
 }
 
 .secondary,
@@ -21,23 +204,31 @@
   background: #eef5fc;
 }
 
-.danger {
-  border-color: #952525;
-  color: #952525;
+.delay {
+  border-color: #795000;
+  background: #fff2cf;
+  color: #654300;
 }
 
+.delay:hover {
+  background: #fce7ac;
+}
+
+.danger,
 .confirm-danger {
   border-color: #952525;
   background: #952525;
   color: var(--color-surface);
 }
 
+.danger:hover,
 .confirm-danger:hover {
   background: #7f251f;
 }
 
 .secondary[aria-disabled='true'] {
   background: var(--color-background);
+  color: var(--color-body);
   cursor: default;
 }
 
@@ -59,9 +250,28 @@ dialog h2 {
   font-size: 22px;
 }
 
+.dialog-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-error-background);
+  color: #952525;
+  font-size: 20px;
+  font-weight: 700;
+}
+
 .dialog-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .admin-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
