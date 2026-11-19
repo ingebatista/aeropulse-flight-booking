@@ -2,6 +2,8 @@
 
 > Documento obligatorio del enunciado (sección 6.2): diseño, justificación, concurrencia, decisiones técnicas y ejecución.
 > **Estado:** diseño previo a la implementación. Al cerrar el desarrollo se contrasta con el código y se ajusta lo que haya cambiado.
+>
+> Documentos complementarios: [reglas de negocio](business-rules.md), [contratos entre frontend y backend](contracts-and-open-questions.md) y [persistencia y migraciones](persistence.md).
 
 ---
 
@@ -85,7 +87,7 @@ flowchart LR
 | `realtime` | *Gateway*, salas, instantánea al unirse | — | — |
 | `admin` | `AdminTokenGuard` y controlador de cambio de estado de vuelos | vía `flights` | — |
 
-Catálogo (`airports`, `aircraft`, vuelos): lo escribe solo el *seed*. Los contadores de la HU4 no tienen módulo en el servidor.
+Catálogo (vuelos y sus asientos, §3.4): lo escribe solo el *seed*. Los contadores de la HU4 no tienen módulo en el servidor.
 
 **Dónde vive cada cosa** (modo monorepo de Nest, compilado con webpack):
 
@@ -97,12 +99,22 @@ Catálogo (`airports`, `aircraft`, vuelos): lo escribe solo el *seed*. Los conta
 | `backend/libs/persistence` | Entidades TypeORM decoradas, migraciones, *seed*, opciones de conexión | Único lugar que conoce el esquema |
 | `backend/libs/events` | Puerto `EventBus` y su adaptador en proceso | — |
 | `packages/shared` | DTOs, enums y contrato de eventos (ESM y CommonJS) | Lo que cruza el cable entre frontend y backend |
+| `frontend/src/app` | `core` (api, socket, almacenes) y `features` (search, seat-map, checkout, dashboard, admin) | El área admin se carga de forma diferida; el estado del tiempo real vive en un único almacén (§4.6) |
+| `docker/db-init` | Script que crea el rol `app` | Solo se ejecuta con el volumen vacío (§7) |
 
 **Bus de eventos.** `inventory` y `flights` registran eventos durante la transacción y los publican **solo después del *commit***; si hay *rollback*, se descartan. `realtime` se suscribe y difunde. La publicación va envuelta en `try/catch` con log: un fallo de difusión nunca debe convertir en `500` una operación ya confirmada.
+
+### 3.4. Modelo de datos
+
+El diseño contempla un catálogo cerrado y tres tablas: `flights`, `seats` y `bookings`. Un vuelo contiene varios asientos y cada asiento puede tener como máximo una reserva. No se prevén tablas independientes de aeronaves ni aeropuertos. Las reglas de catálogo se describen en [reglas de negocio](business-rules.md); el diagrama, las columnas, las restricciones y la estrategia de migraciones se detallan en [persistencia](persistence.md).
+
+El diseño usa UTC para fechas y horarios. Las garantías transaccionales y de concurrencia se describen en la sección 4.
 
 ---
 
 ## 4. Concurrencia y estado en tiempo real
+
+Las rutas, los formatos y los errores se especifican en [contratos entre frontend y backend](contracts-and-open-questions.md).
 
 ### 4.1. Máquina de estados del asiento
 
@@ -131,32 +143,33 @@ Son los tres estados y las tres transiciones del enunciado. Un pago rechazado no
 Dentro de una transacción corta (`READ COMMITTED`):
 
 ```sql
--- 1) Adquirir: una sola sentencia, sin SELECT previo ni lock explícito
-UPDATE seats
-   SET status = 'HELD', held_by = :clientId, hold_token = :token,
-       hold_expires_at = now() + make_interval(secs => :ttl),
-       version = version + 1
- WHERE flight_id = :flightId AND seat_code = :seatCode
-   AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_expires_at < now()))
-   AND EXISTS (SELECT 1 FROM flights f WHERE f.id = :flightId AND f.status <> 'CANCELLED')
-RETURNING version, hold_expires_at;
-
--- 2) Solo si el paso 1 afectó una fila: liberar el bloqueo previo del mismo cliente en ese vuelo
+-- 1) Liberar el bloqueo previo del mismo cliente en ese vuelo (cualquier otro asiento)
 UPDATE seats
    SET status = 'AVAILABLE', held_by = NULL, hold_token = NULL,
        hold_expires_at = NULL, version = version + 1
  WHERE flight_id = :flightId AND held_by = :clientId
    AND status = 'HELD' AND seat_code <> :seatCode
 RETURNING seat_code, version;
+
+-- 2) Adquirir: una sola sentencia, sin SELECT previo ni lock explícito
+UPDATE seats
+   SET status = 'HELD', held_by = :clientId, hold_token = :token,
+       hold_expires_at = now() + make_interval(secs => :ttl),
+       version = version + 1
+ WHERE flight_id = :flightId AND seat_code = :seatCode
+   AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_expires_at <= now()))
+   AND EXISTS (SELECT 1 FROM flights f WHERE f.id = :flightId AND f.status <> 'CANCELLED')
+RETURNING version, hold_expires_at;
 ```
 
-- **Una fila en el paso 1:** el bloqueo se obtuvo. Tras el *commit* se emiten `seat.changed` del asiento nuevo y de cada asiento liberado en el paso 2.
-- **Cero filas:** la decisión ya la tomó el `UPDATE`; una consulta posterior solo elige la respuesta:
-  - el asiento ya está bloqueado por **este mismo cliente** y vigente → `200` con el bloqueo existente (el reintento tras perder la respuesta es idempotente y no extiende el plazo);
+- **Una fila en el paso 2:** el bloqueo se obtuvo. Tras el *commit* se emiten `seat.changed` del asiento nuevo y de cada asiento liberado en el paso 1.
+- **Cero filas en el paso 2:** la decisión ya la tomó el `UPDATE`. Se hace *rollback* (el bloqueo previo del cliente se conserva) y una consulta posterior solo elige la respuesta:
+  - si no existe el vuelo o el asiento → `404`;
   - el vuelo está `CANCELLED` → `409 FLIGHT_CANCELLED`;
+  - el asiento ya está bloqueado por **este mismo cliente** y vigente → `200` con el bloqueo existente, sin extender el plazo;
   - en otro caso → `409 SEAT_UNAVAILABLE`.
-- **Un solo bloqueo activo por cliente y vuelo.** Elegir otro asiento libera el anterior. Evita el acaparamiento de inventario.
-- **Índices.** `UNIQUE (flight_id, seat_code)` para el `hold`, e índice parcial `(hold_expires_at) WHERE status = 'HELD'` para el barrido.
+- **Un solo bloqueo activo por cliente y vuelo.** Elegir otro asiento libera el anterior (paso 1). Evita el acaparamiento de inventario. Lo garantiza la base, no solo el orden de las sentencias: el índice único parcial `(flight_id, held_by) WHERE status = 'HELD'` hace que, si dos peticiones del mismo cliente llegan a la vez, la segunda espere a la primera, falle con `23505` y se reintente la transacción una vez. En el reintento el paso 1 libera el asiento de la primera (gana la última petición).
+- **Índices.** La clave primaria `(flight_id, seat_code)` para el `hold`, el índice parcial `(hold_expires_at) WHERE status = 'HELD'` para el barrido y el único parcial anterior ([persistencia](persistence.md)).
 - **TypeORM.** La sentencia se ejecuta con `createQueryBuilder().update(...).returning([...])` y se lee `affected` y `raw`. No se usa `manager.query()` para esto: el resultado de un `UPDATE` tiene otra forma (`[filas, cantidad]`).
 
 ### 4.4. Confirmación, pago simulado y agotado
@@ -170,9 +183,10 @@ sequenceDiagram
   participant PG as PaymentGateway (simulador)
   participant DB as PostgreSQL
 
-  U->>API: POST /api/bookings/confirm (holdToken, pasajero, tarjeta) + Idempotency-Key
+  U->>API: POST /api/bookings/confirm + X-Client-Id e Idempotency-Key
   API->>DB: ¿Hay una reserva con esa clave?
-  Note over API,DB: mismos datos → 200 con el boleto original · otros datos → 422
+  Note over API,DB: misma huella → 200 con el boleto original · huella distinta → 422
+  Note over API,DB: clave nueva → validar vuelo, asiento y bloqueo vigente antes de simular
   API->>PG: charge() fuera de la transacción
   alt Rechazado
     API-->>U: 402 · el asiento sigue HELD
@@ -181,10 +195,12 @@ sequenceDiagram
     API->>DB: UPDATE seat HELD→BOOKED (token vigente, vuelo no cancelado)
     alt 0 filas
       API->>DB: ¿La misma clave ya creó la reserva?
-      API-->>U: 200 con ese boleto · si no existe, 409
+      API-->>U: 200 si coincide la huella · 422 si difiere · 409 si no se confirmó
     else 1 fila
+      API->>DB: SELECT flights FOR UPDATE · volver a verificar estado
+      Note over API,DB: si está CANCELLED, rollback y 409 FLIGHT_CANCELLED
       API->>DB: INSERT booking (código, last4, referencia, clave, huella)
-      API->>DB: SELECT flights FOR UPDATE · contar asientos no BOOKED
+      API->>DB: Contar asientos no BOOKED
       API->>DB: si es cero: sold_out = true, version + 1
       API->>DB: COMMIT
       Note over API: tras el commit: seat.changed (BOOKED) y, si aplica, flight.status_changed
@@ -199,23 +215,24 @@ El simulador se llama **antes** de abrir la transacción para no retener bloqueo
 | --- | --- |
 | No hay reserva sin pago aprobado | La transacción solo se abre si el simulador aprueba |
 | No hay asiento `BOOKED` sin reserva ni reserva sin asiento | Ambas escrituras en la misma transacción con el mismo `EntityManager` |
-| No se confirma un bloqueo vencido, ajeno o de un vuelo cancelado | `WHERE status='HELD' AND hold_token=:token AND hold_expires_at > now()` y vuelo no `CANCELLED` |
+| No se confirma un bloqueo vencido, ajeno o de un vuelo cancelado | `WHERE status='HELD' AND held_by=:clientId AND hold_token=:token AND hold_expires_at > now()`. Se comprueba el estado del vuelo tras bloquear su fila y se revierte si se canceló. |
 | No hay dos boletos para el mismo asiento | `UNIQUE (flight_id, seat_code)` |
 | No hay dos boletos por un reintento | `Idempotency-Key` con `UNIQUE` |
 | El agotado no se pierde con confirmaciones simultáneas | `SELECT … FOR UPDATE` sobre el vuelo antes de contar |
 
 **Orden de bloqueos (sin interbloqueos).** La confirmación toma primero la fila del asiento y después la del vuelo. El `hold` y el barrido solo toman filas de asientos; el cambio de estado de administración solo toma la fila del vuelo. No hay ciclos.
 
-**Idempotencia.** El cliente genera la clave una vez por intento de compra y la reenvía en cada reintento. La reserva guarda la clave y una huella (`request_hash`: SHA-256 de vuelo, asiento, `holdToken`, pasajero y últimos cuatro dígitos, nunca el número completo).
+**Idempotencia.** El cliente genera la clave una vez por intento de compra y la reenvía en cada reintento. La reserva guarda la clave y una huella (`request_hash`: SHA-256 de vuelo, asiento, `clientId`, `holdToken`, nombres normalizados y últimos cuatro dígitos, nunca el número completo).
 
 | Caso | Respuesta |
 | --- | --- |
 | Primera petición aprobada | `201` con el boleto |
 | Misma clave y mismos datos | `200` con el boleto original; no se crea otra reserva |
 | Misma clave con otros datos | `422 IDEMPOTENCY_KEY_REUSED` |
-| Peticiones simultáneas con la misma clave | La primera gana el `UPDATE`; las demás ven 0 filas, encuentran la reserva ya confirmada y responden `200` con el mismo boleto (también si chocan con la `UNIQUE`, error `23505`) |
+| Peticiones simultáneas con la misma clave | La primera gana el `UPDATE`; las demás consultan la reserva confirmada y comparan su huella, también si chocan con la `UNIQUE` de la clave. Devuelven `200` al coincidir o `422` al diferir |
 | Pago rechazado | `402`. No se guarda nada |
-| Bloqueo vencido, ajeno o vuelo cancelado | `409` |
+| Bloqueo vencido, ajeno o sustituido | `409 HOLD_INACTIVE` |
+| Vuelo cancelado | `409 FLIGHT_CANCELLED` |
 
 **Una transacción, un solo `EntityManager`.** Toda escritura dentro de la confirmación usa el `EntityManager` que entrega `dataSource.transaction()`. Un repositorio inyectado con `@InjectRepository` usa el *manager* por defecto y escribe **fuera** de la transacción: si algo falla después, el *rollback* no lo deshace. Por eso los métodos de escritura reciben el `manager` como parámetro explícito y una prueba de *rollback* lo vigila.
 
@@ -228,18 +245,29 @@ El simulador se llama **antes** de abrir la transacción para no retener bloqueo
 
 El número se valida con Luhn en el DTO.
 
-**Consulta del boleto.** `GET /api/bookings/{code}?lastName=…` devuelve el boleto; exigir el apellido evita enumerar códigos. El boleto también se muestra al confirmar.
+**Consulta del boleto.** `GET /api/bookings/{code}?lastName=…` devuelve el boleto cuando coinciden el código y el apellido. El boleto también se muestra al confirmar.
 
 ### 4.5. Expiración del bloqueo
 
 | Vía | Mecanismo |
 | --- | --- |
 | Activa | Un *job* de la API cada 1 s libera los bloqueos vencidos con `UPDATE … RETURNING` (subiendo `version`) y emite `seat.changed` (`AVAILABLE`) por fila. |
-| Perezosa | La condición `hold_expires_at < now()` del `UPDATE` cubre la ventana entre barridos. |
+| Adquisición directa | Un `UPDATE` puede adquirir un bloqueo con `hold_expires_at <= now()` sin esperar al barrido. Publica `HELD` con la nueva versión. |
+| Liberación explícita | Un `UPDATE` condicional libera solo el bloqueo vigente que coincide con el titular y el token. En un asiento existente se devuelve `204` si se libera o ya no hay un bloqueo vigente. Un bloqueo vigente con otro titular o token devuelve `409 HOLD_NOT_OWNED`. |
 | Frente a la confirmación | La confirmación exige `hold_expires_at > now()`: o gana el barrido o gana la confirmación, nunca ambos. |
 | Cliente | La cuenta regresiva se calcula con `holdExpiresAt` y `serverNow` del servidor, nunca con un temporizador local como fuente de verdad. |
 
 `HOLD_TTL_SECONDS`: 300 por defecto, 30 para demostraciones. Varios barridos simultáneos son seguros (cada fila se libera una sola vez), así que escalar réplicas no requiere coordinación.
+
+**Quién libera un bloqueo.** Con el alcance actual, un bloqueo se libera solo por estas vías:
+
+| Vía | Quién | Qué ocurre |
+| --- | --- | --- |
+| Vencimiento | El sistema (barrido o adquisición directa) | El barrido deja el asiento `AVAILABLE`. Si se vuelve a bloquear antes, pasa directamente a `HELD` con una versión nueva. |
+| Cambio de asiento | El mismo cliente, al bloquear otro asiento del vuelo | Se libera el anterior en la misma transacción (§4.3) |
+| Liberación voluntaria | Solo el titular, con su `holdToken` | Si ya no hay un bloqueo vigente, la llamada es idempotente y no emite eventos. Un token distinto se rechaza si hay un bloqueo vigente. |
+
+La administración **no** libera ni confirma bloqueos de forma manual: el dashboard solo monitorea (HU4). La gestión manual se deja como evolución (§10).
 
 ### 4.6. Consistencia del cliente: fusión por versión
 
@@ -264,24 +292,24 @@ sequenceDiagram
   Note over WS: el socket entra a la sala
   WS->>DB: leer instantánea (después de unir)
   WS-->>C: seat.changed (12A, HELD, v7) → se funde
-  DB-->>WS: asientos con version, myHold
-  WS-->>C: ack { asientos, myHold, serverNow }
+  DB-->>WS: vuelo, asientos con version y bloqueo propio
+  WS-->>C: ack { ok, data: { flight, seats, myHold, serverNow } }
   Note over C: funde cada asiento si version > la conocida
   WS-->>C: seat.changed (12A, HELD, v7) duplicado → ignorado
   WS-->>C: disconnect
   Note over C: indicador «sin conexión»; el próximo connect repite join
 ```
 
-**Contrato de eventos** (definido en `packages/shared`):
+**Contrato de eventos** (diseño para `packages/shared`):
 
 | Evento | Sala | Datos | Cuándo |
 | --- | --- | --- | --- |
-| `seat.changed` | `flight:{flightId}` | `flightId`, `seatCode`, `status`, `version` | Tras el *commit*, si cambia el estado público del asiento |
+| `seat.changed` | `flight:{flightId}` | `flightId`, `seatCode`, `status`, `version` | Tras el *commit*, si cambia el estado o se sustituye un bloqueo vencido |
 | `flight.status_changed` | `search` | `flightId`, `status`, `soldOut`, `version` | Tras el *commit* de un cambio de estado o de agotado |
 
 - **Estado del asiento:** `AVAILABLE`, `HELD` o `BOOKED`. El titular recibe además `holdToken`, `holdExpiresAt` y `serverNow` en la respuesta REST del bloqueo.
 - **Recuperar el bloqueo propio.** El *ack* de `join` incluye `myHold` (asiento, `holdToken`, vencimiento) si el cliente, identificado por su `clientId` en el *handshake*, tiene un bloqueo vigente. Así, recargar la pestaña no pierde el bloqueo. El `clientId` no se difunde nunca.
-- **Listado de vuelos (sala `search`).** `join('search')` devuelve solo `serverNow`; después el cliente consulta `GET /api/flights?origin&destination&date`. Cada vuelo recibido por REST se funde por `version` con el almacén de vuelos, que también guarda los eventos recibidos para vuelos aún no listados.
+- **Listado de vuelos (sala `search`).** `join('search')` devuelve `serverNow` en `data`; después el cliente consulta `GET /api/flights?origin&destination&date`. Cada vuelo recibido por REST se funde por `version` con el almacén de vuelos, que también guarda los eventos recibidos para vuelos aún no listados.
 - **Reconexión.** Al reconectar se repite `join`: el servidor no conserva las salas de la conexión anterior.
 - **`transports: ['websocket']`** en cliente y servidor, para no depender de sesiones pegajosas si se escala.
 
@@ -291,7 +319,7 @@ sequenceDiagram
 | Evento que llega entre la unión y el *ack* | Se funde por versión |
 | Eventos duplicados o desordenados | Se ignoran los de versión menor o igual |
 | Dashboard desincronizado del mapa | Los contadores son un `computed()` del mismo almacén |
-| Pérdida silenciosa sin desconexión | Nueva instantánea al volver la pestaña a primer plano (`visibilitychange`) |
+| Pérdida silenciosa sin desconexión | Al volver a primer plano, una reconexión permite obtener otra instantánea mediante `join` en `connect`. |
 | Tráfico REST bajo carga | Ninguno: los eventos no disparan consultas |
 
 ### 4.7. Cambios de estado de vuelos (HU1)
@@ -313,8 +341,8 @@ sequenceDiagram
 
 | Tema | Decisión |
 | --- | --- |
-| Cliente anónimo | `clientId` UUID en `sessionStorage` (cada pestaña es un cliente distinto, útil para la demo de dos pestañas). Es un secreto de portador: no se difunde. Se envía en un encabezado (REST) y en el *handshake* (WebSocket) |
-| Titularidad del bloqueo | `holdToken` aleatorio, requerido para confirmar o liberar |
+| Cliente anónimo | `clientId` UUID en `sessionStorage` (cada pestaña es un cliente distinto, útil para la demo de dos pestañas). Es un secreto de portador: no se difunde. Se envía como `X-Client-Id` (REST) y `auth.clientId` (Socket.IO) |
+| Titularidad del bloqueo | `holdToken` aleatorio, se usa junto al identificador del titular para confirmar o liberar |
 | Administración | `AdminTokenGuard` con `ADMIN_TOKEN`, comparación con `timingSafeEqual`. En producción (`NODE_ENV=production`) la API **no arranca** si el token es el valor por defecto |
 | Límite de tasa | `@nestjs/throttler` global, con un límite más estricto en `hold`, confirmación y `/api/admin` |
 | Cabeceras | `helmet` |
@@ -329,10 +357,9 @@ sequenceDiagram
 
 | Decisión | Elección | Justificación |
 | --- | --- | --- |
-| Número de aplicaciones | Una API | Las cuatro historias caben en un proceso (§3) |
 | Persistencia | PostgreSQL 17 | Transacciones, restricciones y reloj único |
-| ORM | TypeORM 1.1.3 con `@nestjs/typeorm` 11.0.3 y `pg` | Integración documentada por NestJS, sin binarios por plataforma. Entidades decoradas en `libs/persistence`; el SQL crítico va con `QueryBuilder.returning()`. `synchronize` siempre en `false` |
-| Estado compartido en el cliente | Almacén fusionado por versión | Una sola estrategia para mapa, dashboard y listado; sin búfer ni modos (§4.6) |
+| ORM | TypeORM 1.1.3 con `@nestjs/typeorm` 11.0.3 y `pg` | Integración documentada por NestJS, sin binarios por plataforma. Entidades decoradas en `libs/persistence`; el SQL crítico va con `QueryBuilder.returning()`. `synchronize` siempre en `false`. Es una versión mayor reciente y el riesgo es la sintaxis heredada de la 0.3: se mitiga con pruebas contra PostgreSQL real. Alternativa si el SQL con el ORM da fricción: `pg` con SQL explícito detrás del mismo módulo |
+| Versiones de TypeScript y NestJS | TypeScript `~5.9.3` y NestJS 11.2.x en todo el monorepo | `@angular/build` 21 solo admite TypeScript `>=5.9 <6.0` y NestJS 12 exige 6.0; una sola versión evita dos TypeScript en un mismo *lockfile*. NestJS 11 sigue recibiendo parches (etiqueta `legacy` de npm). Migrar a NestJS 12 queda atado a Angular 22. *(Rangos consultados en npm el 2026-11-18.)* |
 | Bus de eventos | `EventBus` en proceso (`Subject` de RxJS), tras el *commit* | Sin infraestructura adicional; nunca anuncia un cambio revertido |
 | Protocolo de tiempo real | Socket.IO | Salas, reconexión y eventos tipados con `packages/shared`. SSE sería válido porque los comandos van por REST, pero un navegador limita las conexiones HTTP/1.1 a 6 por origen |
 | Caché y Redis | No en la entrega base | Con una instancia, PostgreSQL basta (§10) |
@@ -363,7 +390,7 @@ docker compose up --build
 
 - **Orden de arranque:** `depends_on` con condiciones (`service_healthy`, `service_completed_successfully`), sin esperas fijas. El *healthcheck* de la API usa Node (`fetch`) porque la imagen no trae `curl`.
 - **Base de datos:** la imagen oficial, datos en el volumen `pgdata` (`docker compose down -v` reinicia desde cero), columnas `timestamptz`, sin puerto publicado para no chocar con un PostgreSQL local. Un script de `docker/db-init` crea el rol `app` (solo se ejecuta con el volumen vacío); las migraciones le conceden lectura y escritura de datos. Credenciales de desarrollo con valores por defecto (`${VAR:-default}`) y un `.env.example`.
-- **Datos iniciales:** *seed* idempotente (`upsert` por clave natural: número de vuelo + fecha). Los vuelos se generan para **los próximos 14 días a partir de hoy**, de modo que la búsqueda por fecha no devuelva vacío el día de la evaluación; el formulario precarga una fecha con resultados. Incluye el vuelo de demostración de 6 asientos.
+- **Datos iniciales:** *seed* idempotente (`upsert` por clave natural: número de vuelo + fecha). Los vuelos se generan **desde hoy hasta el último día del mes en curso** (UTC, calculado al ejecutar el *seed*; catálogo y límites en [reglas de negocio](business-rules.md)), de modo que la búsqueda por fecha no devuelva vacío el día de la evaluación; el formulario precarga una fecha con resultados. Incluye el vuelo de demostración de 6 asientos.
 - **Frontend portable:** Nginx sirve los estáticos y hace de proxy inverso de `/api/` y `/ws/` (con `Upgrade` y `proxy_read_timeout` ampliado). El frontend usa rutas relativas: sin URLs fijadas en el *bundle*, sin CORS y con un solo puerto.
 - **Dos modos:** evaluación (`docker compose up --build`) y desarrollo (`npm run db:dev` + `npm run dev`; `compose.dev.yaml` se carga con `-f`, no como `docker-compose.override.yml`, para que la demo no publique el puerto de la base).
 - **Trampas conocidas:** `.gitattributes` con `eol=lf` (CRLF en Windows), `.dockerignore` con `node_modules`/`dist`/`.angular`, `typescript` fijado en `~5.9.3`, `package-lock.json` versionado, solo imágenes multiarquitectura.
@@ -416,3 +443,4 @@ El enunciado evalúa explícitamente el diseño de la experiencia. Criterios mí
 | Garantía de entrega de eventos | *Transactional outbox* | Los eventos se escriben en la misma transacción |
 | Proveedor de pago real | Adaptador nuevo de `PaymentGateway`; estado `PAYING` con `payment_deadline`; tabla `payments`; `refund()` como compensación; conciliación y *webhooks* | Un cobro externo ya no cabe en una transacción |
 | Usuarios y roles reales | JWT en lugar del token estático | Cambia `AdminTokenGuard` |
+| Gestión manual de bloqueos desde administración | Endpoint de administración para liberar un bloqueo, protegido por rol | Reutiliza la misma sentencia de liberación; añade un controlador y su evento `seat.changed` |
