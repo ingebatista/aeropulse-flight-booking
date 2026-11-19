@@ -57,7 +57,7 @@ Componentes standalone, signals, `computed()`, `@if`/`@for`, detección *zoneles
 - No registres ni guardes el número de tarjeta ni el CVV; solo `card_last4`, `card_brand` y la referencia del simulador.
 - `ADMIN_TOKEN` se compara con `timingSafeEqual`; con `NODE_ENV=production` la API no arranca si es el valor por defecto.
 - `join` del WebSocket solo acepta `search` y `flight:{uuid}`.
-- El *seed* genera vuelos desde hoy hasta el último día del mes en curso, es idempotente y trabaja todo en **UTC**. Catálogo cerrado (`BAQ`, `BOG`, `MDE`), tablas y restricciones: `docs/architecture.md` §3.4.
+- El *seed* genera vuelos desde hoy hasta el último día del mes en curso y trabaja en **UTC**. Su clave natural es `(flight_number, departure_at)`. El catálogo cerrado (`BAQ`, `BOG`, `MDE`) está en `docs/business-rules.md`. Las tablas y restricciones están en `docs/persistence.md`.
 
 ## Migraciones, entidades y permisos
 

@@ -192,7 +192,7 @@ sequenceDiagram
     API-->>U: 402 · el asiento sigue HELD
   else Aprobado
     API->>DB: BEGIN
-    API->>DB: UPDATE seat HELD→BOOKED (token vigente, vuelo no cancelado)
+    API->>DB: UPDATE seat HELD→BOOKED (validar titular, token y vigencia, limpiar campos del bloqueo)
     alt 0 filas
       API->>DB: ¿La misma clave ya creó la reserva?
       API-->>U: 200 si coincide la huella · 422 si difiere · 409 si no se confirmó
@@ -390,7 +390,7 @@ docker compose up --build
 
 - **Orden de arranque:** `depends_on` con condiciones (`service_healthy`, `service_completed_successfully`), sin esperas fijas. El *healthcheck* de la API usa Node (`fetch`) porque la imagen no trae `curl`.
 - **Base de datos:** la imagen oficial, datos en el volumen `pgdata` (`docker compose down -v` reinicia desde cero), columnas `timestamptz`, sin puerto publicado para no chocar con un PostgreSQL local. Un script de `docker/db-init` crea el rol `app` (solo se ejecuta con el volumen vacío); las migraciones le conceden lectura y escritura de datos. Credenciales de desarrollo con valores por defecto (`${VAR:-default}`) y un `.env.example`.
-- **Datos iniciales:** *seed* idempotente (`upsert` por clave natural: número de vuelo + fecha). Los vuelos se generan **desde hoy hasta el último día del mes en curso** (UTC, calculado al ejecutar el *seed*; catálogo y límites en [reglas de negocio](business-rules.md)), de modo que la búsqueda por fecha no devuelva vacío el día de la evaluación; el formulario precarga una fecha con resultados. Incluye el vuelo de demostración de 6 asientos.
+- **Datos iniciales:** el *seed* identifica cada vuelo por número e instante exacto de salida en UTC. Al reejecutarse, conserva los registros existentes. Los vuelos se generan desde hoy hasta el último día del mes en curso, según las salidas futuras disponibles. El formulario precarga una fecha con resultados cuando los hay. El catálogo incluye el vuelo de demostración de seis asientos. [Reglas de negocio](business-rules.md) · [Clave del seed](persistence.md#migraciones-y-responsabilidades).
 - **Frontend portable:** Nginx sirve los estáticos y hace de proxy inverso de `/api/` y `/ws/` (con `Upgrade` y `proxy_read_timeout` ampliado). El frontend usa rutas relativas: sin URLs fijadas en el *bundle*, sin CORS y con un solo puerto.
 - **Dos modos:** evaluación (`docker compose up --build`) y desarrollo (`npm run db:dev` + `npm run dev`; `compose.dev.yaml` se carga con `-f`, no como `docker-compose.override.yml`, para que la demo no publique el puerto de la base).
 - **Trampas conocidas:** `.gitattributes` con `eol=lf` (CRLF en Windows), `.dockerignore` con `node_modules`/`dist`/`.angular`, `typescript` fijado en `~5.9.3`, `package-lock.json` versionado, solo imágenes multiarquitectura.
