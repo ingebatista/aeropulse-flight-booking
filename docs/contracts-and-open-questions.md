@@ -94,6 +94,7 @@ HTTP devuelve el estado correspondiente y un objeto `{ "error": { "code": "...",
 | 404 | `FLIGHT_NOT_FOUND` | El identificador del vuelo no existe. |
 | 404 | `SEAT_NOT_FOUND` | El vuelo existe, pero el código no corresponde a uno de sus asientos. |
 | 404 | `BOOKING_NOT_FOUND` | El código y el apellido no identifican un boleto. |
+| 404 | `NOT_FOUND` | La ruta no existe. |
 | 409 | `FLIGHT_CANCELLED` | Se intenta bloquear o confirmar un asiento en un vuelo cancelado. |
 | 409 | `SEAT_UNAVAILABLE` | El asiento está reservado o tiene un bloqueo vigente de otro cliente. |
 | 409 | `HOLD_INACTIVE` | No hay un bloqueo vigente que coincida en asiento, cliente y token al confirmar. El frontend descarta el bloqueo local si coincide con el token que envió y pide seleccionar un asiento de nuevo si no hay otro bloqueo vigente. |
