@@ -66,6 +66,7 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 - **19 de noviembre de 2026.** El agente de evidencias de la oleada 1 marcó casillas de la checklist, que solo marca el integrador, y dejó el trabajo de diseño (arch §4.4 y §5, contrato) en la rama de evidencias. Separé los dos squash en commits distintos y revisé cada casilla contra su evidencia.
 - **19 de noviembre de 2026.** Esa evidencia citaba el hash de un commit que el *squash* hace desaparecer de `develop`. Lo sustituí por el del commit integrado.
 - **19 de noviembre de 2026.** El plan de la oleada 1 incluía añadir al catálogo una tabla de horarios que ya existía en `business-rules.md`. La revisión contra el código evitó duplicarla.
+- **19 de noviembre de 2026.** La simulación del envío comprobó la conexión con GitHub, pero el envío real del usuario activó la protección de secretos. Dejé `.mcp.json` como configuración local de desarrollo y lo retiré del commit que GitHub había rechazado.
 
 ## 4. Impacto
 
