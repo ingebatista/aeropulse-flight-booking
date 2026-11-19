@@ -1,0 +1,60 @@
+.ticket {
+  max-width: 680px;
+  margin-inline: auto;
+  border: 1px solid var(--color-outline);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+}
+
+.ticket-heading {
+  padding: 20px;
+  background: var(--color-navy);
+  color: var(--color-surface);
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+h2 {
+  font-size: 22px;
+}
+
+.ticket-heading p {
+  margin-top: 10px;
+}
+
+.booking-code {
+  display: block;
+  margin-top: 4px;
+  color: #c9e3ff;
+  font-size: 30px;
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 20px;
+}
+
+dt {
+  font-size: 13px;
+}
+
+dd {
+  margin: 0;
+  color: var(--color-navy);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount {
+  color: var(--color-primary-hover);
+}

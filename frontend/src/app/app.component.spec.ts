@@ -14,7 +14,7 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     await fixture.whenStable();
 
-    const heading = (fixture.nativeElement as HTMLElement).querySelector('h1');
-    expect(heading?.textContent).toContain('AeroPulse');
+    const brand = (fixture.nativeElement as HTMLElement).querySelector('header .brand');
+    expect(brand?.textContent).toContain('AeroPulse');
   });
 });

@@ -1,0 +1,123 @@
+@if (ticket(); as confirmed) {
+  <app-ticket [ticket]="confirmed" />
+} @else {
+  <section class="checkout" aria-labelledby="checkout-title">
+    @let submitted = locked();
+    <h2 id="checkout-title" #heading tabindex="-1">Confirmar reserva</h2>
+    @if (error()) {
+      <p class="booking-alert" role="alert">{{ error() }}</p>
+    }
+    @if (!terminal() && (canStart() || locked())) {
+      <form (submit)="submit($event, firstName, lastName, card)" novalidate>
+        <div class="summary">
+          <h3>Tu vuelo</h3>
+          <p>{{ flight()?.flightNumber }} · {{ flight()?.origin }} → {{ flight()?.destination }}</p>
+          <p>
+            Asiento <strong>{{ seat() }}</strong>
+          </p>
+          @if (clock.activeHold()) {
+            <p>
+              Tiempo restante <strong class="clock">{{ clock.countdown() }}</strong>
+            </p>
+          }
+        </div>
+        <div class="fields">
+          <div class="booking-field">
+            <label for="first-name">Nombre</label>
+            <input
+              id="first-name"
+              #firstName
+              autocomplete="given-name"
+              required
+              [readOnly]="!!submitted"
+              [value]="submitted ? submitted.body.passenger.firstName : passenger().firstName"
+              [attr.aria-invalid]="errors().firstName ? 'true' : null"
+              [attr.aria-describedby]="errors().firstName ? 'first-name-error' : null"
+              (input)="edit('firstName', firstName.value)"
+            />
+            @if (errors().firstName) {
+              <small id="first-name-error">{{ errors().firstName }}</small>
+            }
+          </div>
+          <div class="booking-field">
+            <label for="last-name">Apellido</label>
+            <input
+              id="last-name"
+              #lastName
+              autocomplete="family-name"
+              required
+              [readOnly]="!!submitted"
+              [value]="submitted ? submitted.body.passenger.lastName : passenger().lastName"
+              [attr.aria-invalid]="errors().lastName ? 'true' : null"
+              [attr.aria-describedby]="errors().lastName ? 'last-name-error' : null"
+              (input)="edit('lastName', lastName.value)"
+            />
+            @if (errors().lastName) {
+              <small id="last-name-error">{{ errors().lastName }}</small>
+            }
+          </div>
+          <div class="booking-field">
+            <label for="card">Número de tarjeta de prueba</label>
+            <input
+              id="card"
+              #card
+              type="password"
+              inputmode="numeric"
+              autocomplete="off"
+              required
+              [readOnly]="!!pending()"
+              maxlength="19"
+              [attr.aria-invalid]="errors().card ? 'true' : null"
+              [attr.aria-describedby]="
+                errors().card ? 'card-error' : uncertain() ? 'card-retry' : null
+              "
+              (input)="setCardError()"
+            />
+            @if (errors().card) {
+              <small id="card-error" role="alert">{{ errors().card }}</small>
+            }
+            @if (uncertain(); as retry) {
+              <small id="card-retry">Usa una tarjeta válida terminada en {{ retry.last4 }}.</small>
+            }
+          </div>
+          <div class="test-cards" role="group" aria-label="Tarjetas del simulador">
+            @for (sample of testCards; track sample.cardNumber) {
+              <button
+                type="button"
+                [disabled]="!!pending()"
+                (click)="chooseCard(card, sample.cardNumber)"
+              >
+                <strong>{{ sample.label }}</strong><span>{{ sample.cardNumber }}</span>
+              </button>
+            }
+          </div>
+        </div>
+        <div class="actions">
+          <p>
+            Total <strong>COP {{ money.format(flight()?.fareCop ?? 0) }}</strong>
+          </p>
+          <button class="booking-primary" type="submit" [disabled]="!canSubmit()">
+            {{
+              pending()
+                ? 'Confirmando…'
+                : uncertain()
+                  ? 'Reintentar confirmación'
+                  : 'Confirmar reserva'
+            }}
+          </button>
+        </div>
+      </form>
+    } @else {
+      @if (!error()) {
+        <p role="status">
+          {{
+            flight()?.status === 'CANCELLED'
+              ? 'El vuelo fue cancelado.'
+              : 'Necesitas un bloqueo vigente para confirmar.'
+          }}
+        </p>
+      }
+      <a class="booking-primary" routerLink="../asientos">Volver al mapa</a>
+    }
+  </section>
+}

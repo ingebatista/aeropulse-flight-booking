@@ -1,0 +1,67 @@
+.admin-tools {
+  margin-bottom: 12px;
+}
+
+.admin-tools p {
+  margin: 8px 0 0;
+}
+
+.secondary,
+.confirm-danger {
+  min-height: 44px;
+  border: 1px solid var(--color-control);
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  color: var(--color-primary-hover);
+  font-weight: 700;
+}
+
+.secondary:hover {
+  background: #eef5fc;
+}
+
+.danger {
+  border-color: #952525;
+  color: #952525;
+}
+
+.confirm-danger {
+  border-color: #952525;
+  background: #952525;
+  color: var(--color-surface);
+}
+
+.confirm-danger:hover {
+  background: #7f251f;
+}
+
+.secondary[aria-disabled='true'] {
+  background: var(--color-background);
+  cursor: default;
+}
+
+dialog {
+  width: min(440px, calc(100% - 32px));
+  border: 1px solid var(--color-outline);
+  border-radius: 12px;
+  padding: 24px;
+  color: var(--color-body);
+}
+
+dialog::backdrop {
+  background: #262b40a6;
+}
+
+dialog h2 {
+  margin: 0;
+  color: var(--color-navy);
+  font-size: 22px;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

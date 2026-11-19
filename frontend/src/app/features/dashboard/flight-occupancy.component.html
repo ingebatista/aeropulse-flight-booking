@@ -1,0 +1,14 @@
+<section class="occupancy" aria-labelledby="occupancy-title">
+  <h2 id="occupancy-title">Ocupación del vuelo</h2>
+  <dl class="counts">
+    @for (status of statuses; track status) {
+      <div class="count" [attr.data-status]="status">
+        <dt>
+          <span aria-hidden="true">{{ appearance[status].icon }}</span> {{ labels[status] }}
+        </dt>
+        <dd>{{ inventory().counts()[status] }}</dd>
+      </div>
+    }
+  </dl>
+  <app-seat-grid [seats]="inventory().seats()" />
+</section>

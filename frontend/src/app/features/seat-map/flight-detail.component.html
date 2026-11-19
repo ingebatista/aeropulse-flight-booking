@@ -1,0 +1,57 @@
+<div class="detail-page">
+  <a class="back" routerLink="/">← Volver a la búsqueda</a>
+  @let state = connection();
+  <div class="detail-heading">
+    <div>
+      @if (flight(); as selected) {
+        <h1>Vuelo {{ selected.flightNumber }}</h1>
+        <p>{{ selected.origin }} → {{ selected.destination }}</p>
+      } @else {
+        <h1>Detalle del vuelo</h1>
+      }
+    </div>
+    @if (!invalid()) {
+      <div class="connection" role="status">
+        @switch (state.status) {
+          @case ('connected') {
+            <span class="connection-live">En vivo</span>
+          }
+          @case ('offline') {
+            <span>Sin conexión</span>
+          }
+          @case ('error') {
+            <span>Error de sincronización</span>
+          }
+          @default {
+            <span>Sincronizando…</span>
+          }
+        }
+      </div>
+    }
+  </div>
+  @if (invalid() || (state.status === 'error' && state.error.code === 'FLIGHT_NOT_FOUND')) {
+    <p class="notice" role="alert">No se encontró el vuelo.</p>
+  } @else if (inventory(); as current) {
+    <nav class="detail-nav" aria-label="Opciones del vuelo">
+      <a routerLink="asientos" routerLinkActive="selected" ariaCurrentWhenActive="page"
+        >Mapa de asientos</a
+      >
+      <a routerLink="ocupacion" routerLinkActive="selected" ariaCurrentWhenActive="page"
+        >Ocupación</a
+      >
+    </nav>
+    @if (state.status === 'offline' || state.status === 'error') {
+      <div class="notice">
+        <span role="alert">{{
+          state.status === 'error' ? state.error.message : 'Se perdió la conexión con el vuelo.'
+        }}</span>
+        <button type="button" (click)="retry()">Reintentar conexión</button>
+      </div>
+    }
+    @if (current.initialized()) {
+      <router-outlet [routerOutletData]="current" />
+    } @else if (state.status === 'loading') {
+      <p class="inventory-loading" role="status">Cargando asientos…</p>
+    }
+  }
+</div>

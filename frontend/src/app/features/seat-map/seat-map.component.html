@@ -1,0 +1,51 @@
+<section class="seat-panel" aria-labelledby="map-title">
+  <h2 id="map-title">Mapa de asientos</h2>
+  @if (flight()?.status === 'CANCELLED') {
+    <p class="seat-message">Vuelo cancelado. La selección de asientos está cerrada.</p>
+  } @else if (flight()?.soldOut) {
+    <p class="seat-message">Este vuelo está agotado.</p>
+  }
+
+  @if (clock.activeHold(); as hold) {
+    <div class="own-hold">
+      <div>
+        <strong>Mi asiento · {{ hold.seatCode }}</strong>
+        <div>
+          Tiempo restante <span class="countdown">{{ clock.countdown() }}</span>
+        </div>
+      </div>
+      <button type="button" [attr.aria-disabled]="!canWrite()" (click)="release()">
+        Liberar asiento
+      </button>
+      @if (canSelect()) {
+        <a class="booking-primary" routerLink="../checkout">Continuar a la reserva</a>
+      }
+    </div>
+  }
+  <div class="feedback" role="status">
+    @if (pending()) {
+      <p>Actualizando el bloqueo…</p>
+    }
+    @if (expiry()) {
+      <p>{{ expiry() }}</p>
+    }
+  </div>
+  @if (error()) {
+    <p class="seat-message" role="alert">{{ error() }}</p>
+  }
+
+  <ul class="seat-legend" role="list" aria-label="Estados de los asientos">
+    @for (entry of legend; track entry[0]) {
+      <li [attr.data-status]="entry[0]">
+        <span aria-hidden="true">{{ entry[1].icon }}</span> {{ entry[1].label }}
+      </li>
+    }
+  </ul>
+  <app-seat-grid
+    [seats]="inventory().seats()"
+    [interactive]="true"
+    [canSelect]="canSelect()"
+    [ownSeat]="clock.activeHold()?.seatCode ?? null"
+    (seatSelected)="choose($event)"
+  />
+</section>

@@ -1,0 +1,34 @@
+@if (rows().length) {
+  <div class="cabin" role="group" aria-label="Cabina del vuelo">
+    @for (row of rows(); track row.number) {
+      <div class="seat-row" role="group" [attr.aria-label]="'Fila ' + row.number">
+        <span class="aisle" aria-hidden="true">{{ row.number }}</span>
+        @for (entry of row.entries; track entry.seat.seatCode) {
+          @let status = state(entry.seat);
+          @if (interactive()) {
+            <button
+              type="button"
+              class="seat"
+              [style.grid-column]="entry.column"
+              [attr.data-status]="status"
+              [attr.aria-disabled]="!selectable(entry.seat)"
+              (click)="choose(entry.seat)"
+            >
+              <span class="seat-icon" aria-hidden="true">{{ appearance[status].icon }}</span>
+              <span class="seat-code">{{ entry.seat.seatCode }}</span>
+              <span class="seat-label">{{ appearance[status].label }}</span>
+            </button>
+          } @else {
+            <div class="seat" [style.grid-column]="entry.column" [attr.data-status]="status">
+              <span class="seat-icon" aria-hidden="true">{{ appearance[status].icon }}</span>
+              <span class="seat-code">{{ entry.seat.seatCode }}</span>
+              <span class="seat-label">{{ appearance[status].label }}</span>
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <p>No hay asientos registrados para este vuelo.</p>
+}

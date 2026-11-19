@@ -228,15 +228,15 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 
 Hasta que llegue cada hito real, el frontend trabaja contra un adaptador falso en memoria que cumple los contratos de §4: versiones crecientes, vencimiento del bloqueo, `409`, `402` y eventos. Es un `HttpInterceptorFn` y una fábrica de socket inyectable, activos solo en la configuración `fake`; no son puertos nuevos. El humano lo aprobó el 2026-11-18 como primera versión, para no sumar complejidad al desarrollo inicial.
 
-- [ ] **[I]** `@front` `F1` Implementar el núcleo: `clientId` en `sessionStorage`, cliente HTTP tipado con `shared` (`X-Client-Id`, `Idempotency-Key`), servicio de socket (`join` solo en `connect`, `auth.clientId`, `transports: ['websocket']`) y traducción de errores por `code`.
-- [ ] **[I]** `@front` `F1` Implementar el almacén por vuelo y el almacén de vuelos con fusión por `version` (`arch` §4.6), con los contadores como `computed()`.
-- [ ] **[V]** `@front` `F1` Probar fusión por versión, duplicados, eventos de vuelo antes de cargar el catálogo, descarte del bloqueo propio y cambio de suscripción al navegar entre vuelos. [Sincronización](architecture.md#46-consistencia-del-cliente-fusión-por-versión). Evidencia: _(test)_
-- [ ] **[I]** `@front` `F1` Implementar el adaptador falso descrito arriba y la configuración `fake` en `angular.json`.
-- [ ] **[I]** `@front` `F2` Implementar la búsqueda (HU1): formulario, listado con UTC visible, estados cancelado y agotado, y actualización en su lugar con `flight.status_changed`.
-- [ ] **[I]** `@front` `F3` Implementar el mapa de asientos (HU2): selección con bloqueo, asiento propio resaltado, cuenta regresiva con `holdExpiresAt` y `serverNow`, recuperación con `myHold` y reversión ante `409`.
-- [ ] **[I]** `@front` `F3` Implementar el dashboard (HU4) con los contadores `computed()` del mismo almacén que pinta el mapa.
-- [ ] **[I]** `@front` `F4` Implementar el checkout (HU3): tarjetas de prueba visibles, una `Idempotency-Key` por intento de compra, boleto con código y consulta por código y apellido.
-- [ ] **[I]** `@front` `F5` Implementar el área de administración en carga diferida, con *guard* y cambio de estado de vuelos.
+- [x] **[I]** `@front` `F1` Implementar el núcleo: `clientId` en `sessionStorage`, cliente HTTP tipado con `shared` (`X-Client-Id`, `Idempotency-Key`), servicio de socket (`join` solo en `connect`, `auth.clientId`, `transports: ['websocket']`) y traducción de errores por `code`.
+- [x] **[I]** `@front` `F1` Implementar el almacén por vuelo y el almacén de vuelos con fusión por `version` (`arch` §4.6), con los contadores como `computed()`.
+- [x] **[V]** `@front` `F1` Probar fusión por versión, duplicados, eventos de vuelo antes de cargar el catálogo, descarte del bloqueo propio y cambio de suscripción al navegar entre vuelos. [Sincronización](architecture.md#46-consistencia-del-cliente-fusión-por-versión). Evidencia: `inventory-store.spec.ts` y `flight-realtime.spec.ts`; 12 pruebas del frontend aprobadas. [Registro F1](handoff/frontend.md#f1--2026-11-19).
+- [x] **[I]** `@front` `F1` Implementar el adaptador falso descrito arriba y la configuración `fake` en `angular.json`. [Registro F1](handoff/frontend.md#f1--2026-11-19).
+- [x] **[I]** `@front` `F2` Implementar la búsqueda (HU1): formulario, listado con UTC visible, estados cancelado y agotado, y actualización en su lugar con `flight.status_changed`. Verificado con el adaptador `fake`, 18 pruebas del frontend aprobadas y revisión en Chrome a 360 y 1366 px. [Registro F2](handoff/frontend.md#f2--2026-11-19).
+- [x] **[I]** `@front` `F3` Implementar el mapa de asientos (HU2): selección con bloqueo, asiento propio resaltado, cuenta regresiva con `holdExpiresAt` y `serverNow`, recuperación con `myHold` y reversión ante `409`. Verificado con el adaptador `fake`; integración real pendiente de M2. [Registro F3](handoff/frontend.md#f3--2026-11-19).
+- [x] **[I]** `@front` `F3` Implementar el dashboard (HU4) con los contadores `computed()` del mismo almacén que pinta el mapa. Verificado con el adaptador `fake`. [Registro F3](handoff/frontend.md#f3--2026-11-19).
+- [x] **[I]** `@front` `F4` Implementar el checkout (HU3): tarjetas de prueba visibles, una `Idempotency-Key` por intento de compra, boleto con código y consulta por código y apellido. Verificado con el adaptador `fake` y 29 pruebas del frontend. La integración real queda pendiente de M2 y M3. [Registro F4](handoff/frontend.md#f4--2026-11-19).
+- [x] **[I]** `@front` `F5` Implementar el área de administración en carga diferida, con *guard* y cambio de estado de vuelos. Verificado con `fake` y 34 pruebas del frontend. La integración real queda pendiente de M4. [Registro F5](handoff/frontend.md#f5--2026-11-19).
 - [ ] **[I]** `@front` `F2` a `F5` Apagar el adaptador falso por capacidad cuando el hito real llega a `develop`: `search` (M1), `seats` y `realtime` (M2), `booking` (M3) y `admin` (M4). Evidencia: _(lista de capacidades reales en el seguimiento del carril)_
 
 ### 6.C Verificación del flujo (carril `@integ`)
@@ -260,8 +260,8 @@ Empieza cuando M4 y F5 están en `develop`.
 
 ## 8. Calidad y entrega
 
-- [ ] **[V]** `@front` `F5` Revisar navegación por teclado, etiquetas, foco visible, contraste y estados accesibles.
-- [ ] **[V]** `@front` `F5` Revisar estados de carga, vacío y error, así como la adaptación a pantallas pequeñas (desde 360 px).
+- [x] **[V]** `@front` `F5` Revisar navegación por teclado, etiquetas, foco visible, contraste y estados accesibles. Se verificó el foco del diálogo en Chrome y Lighthouse dio 100 en accesibilidad en las ocho vistas y estados auditados. [Registro F5](handoff/frontend.md#f5--2026-11-19).
+- [x] **[V]** `@front` `F5` Revisar estados de carga, vacío y error, así como la adaptación a pantallas pequeñas (desde 360 px). Verificado con las pruebas del frontend y la revisión en Chrome a 360 y 1366 px. [Registro F5](handoff/frontend.md#f5--2026-11-19).
 - [ ] **[I]** `@integ` `M5` Disponer de un comando o pipeline único que compile y ejecute todas las pruebas, incluidas las de concurrencia. Propuesta: un script `verify` en la raíz con `build`, `lint` y `test`.
 - [ ] **[V]** `@integ` `M5` Ejecutar ese comando y confirmar que pasa.
 - [ ] **[V]** `@integ` `M5` Contrastar `docs/architecture.md` con el comportamiento realmente implementado y corregir las diferencias, usando los cambios que cada carril anotó en su seguimiento.

@@ -1,0 +1,50 @@
+<div class="lookup">
+  <form aria-labelledby="lookup-title" (submit)="submit($event, code, lastName)" novalidate>
+    <h1 id="lookup-title" #heading tabindex="-1">Consultar boleto</h1>
+    @if (error()) {
+      <p class="booking-alert" role="alert">{{ error() }}</p>
+    }
+    <div class="booking-field">
+      <label for="booking-code">Código de reserva</label>
+      <input
+        id="booking-code"
+        #code
+        type="text"
+        autocapitalize="characters"
+        autocomplete="off"
+        spellcheck="false"
+        required
+        [readOnly]="pending()"
+        [attr.aria-invalid]="invalidCode() ? 'true' : null"
+        [attr.aria-describedby]="invalidCode() ? 'lookup-code-error' : null"
+        (input)="invalidCode.set(false)"
+      />
+      @if (invalidCode()) {
+        <small id="lookup-code-error">Introduce un código de seis caracteres válido.</small>
+      }
+    </div>
+    <div class="booking-field">
+      <label for="booking-name">Apellido del pasajero</label>
+      <input
+        id="booking-name"
+        #lastName
+        autocomplete="family-name"
+        required
+        [readOnly]="pending()"
+        [attr.aria-invalid]="invalidName() ? 'true' : null"
+        [attr.aria-describedby]="invalidName() ? 'lookup-name-error' : null"
+        (input)="invalidName.set(false)"
+      />
+      @if (invalidName()) {
+        <small id="lookup-name-error">Introduce un apellido de 1 a 60 caracteres.</small>
+      }
+    </div>
+    <button class="booking-primary" type="submit" [disabled]="pending()">
+      {{ pending() ? 'Buscando…' : 'Buscar boleto' }}
+    </button>
+  </form>
+
+  @if (ticket(); as found) {
+    <app-ticket [ticket]="found" />
+  }
+</div>
