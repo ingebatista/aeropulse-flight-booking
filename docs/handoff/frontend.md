@@ -78,4 +78,21 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 
 ## Registro
 
-_(sin entradas)_
+### F1 · 2026-11-19
+
+- Hecho: identidad de pestaña, cliente HTTP tipado, traducción de errores, suscripción Socket.IO y almacenes con fusión por versión. El mapa y el dashboard podrán compartir el inventario y sus contadores.
+- Hecho: configuración `fake` con un interceptor HTTP y una fábrica de socket que comparten el estado en memoria. Los interruptores están en `frontend/src/app/core/transport.providers.fake.ts`. La simulación vive en una instancia de la aplicación, por lo que la prueba de competencia usa dos identificadores en esa misma instancia.
+- Comandos y salida:
+
+  | Comando | Salida |
+  | --- | --- |
+  | `npm ci` | `added 1143 packages, and audited 1147 packages in 4m` |
+  | `npm run build` | `webpack 5.106.2 compiled successfully` para API y migraciones. Angular terminó con `Application bundle generation complete.` |
+  | `npm run build -w frontend -- --configuration fake` | `Application bundle generation complete.` |
+  | `npm test -w frontend` | `Test Files  4 passed (4)` · `Tests  12 passed (12)` |
+  | `npm run lint` | `eslint .`, código de salida `0`. |
+  | Arranque Angular `fake` y petición local | `HTTP 200 · AeroPulse: true` |
+
+- Capacidades reales verificadas: ninguna. `search`, `seats`, `realtime`, `booking` y `admin` están activos en el adaptador falso. Las pruebas son pre-evidencia de F1.
+- Desviaciones del contrato: ninguna detectada en los casos probados.
+- Cambios que necesita la documentación: ninguno.

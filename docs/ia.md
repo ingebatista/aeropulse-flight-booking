@@ -18,6 +18,6 @@ _(sin entradas)_
 
 ### Carril frontend (Codex)
 
-_(sin entradas)_
+- **19 de noviembre de 2026.** La prueba del vencimiento usaba `vi.waitFor`, que adelantaba el reloj simulado y cambiaba el `serverNow` esperado. La ajusté para procesar el reconocimiento del socket sin avanzar el tiempo.
 
 <!-- fin carril frontend -->

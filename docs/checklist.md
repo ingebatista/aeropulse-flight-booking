@@ -222,10 +222,10 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 
 Hasta que llegue cada hito real, el frontend trabaja contra un adaptador falso en memoria que cumple los contratos de §4: versiones crecientes, vencimiento del bloqueo, `409`, `402` y eventos. Es un `HttpInterceptorFn` y una fábrica de socket inyectable, activos solo en la configuración `fake`; no son puertos nuevos. El humano lo aprobó el 2026-11-18 como primera versión, para no sumar complejidad al desarrollo inicial.
 
-- [ ] **[I]** `@front` `F1` Implementar el núcleo: `clientId` en `sessionStorage`, cliente HTTP tipado con `shared` (`X-Client-Id`, `Idempotency-Key`), servicio de socket (`join` solo en `connect`, `auth.clientId`, `transports: ['websocket']`) y traducción de errores por `code`.
-- [ ] **[I]** `@front` `F1` Implementar el almacén por vuelo y el almacén de vuelos con fusión por `version` (`arch` §4.6), con los contadores como `computed()`.
-- [ ] **[V]** `@front` `F1` Probar fusión por versión, duplicados, eventos de vuelo antes de cargar el catálogo, descarte del bloqueo propio y cambio de suscripción al navegar entre vuelos. [Sincronización](architecture.md#46-consistencia-del-cliente-fusión-por-versión). Evidencia: _(test)_
-- [ ] **[I]** `@front` `F1` Implementar el adaptador falso descrito arriba y la configuración `fake` en `angular.json`.
+- [x] **[I]** `@front` `F1` Implementar el núcleo: `clientId` en `sessionStorage`, cliente HTTP tipado con `shared` (`X-Client-Id`, `Idempotency-Key`), servicio de socket (`join` solo en `connect`, `auth.clientId`, `transports: ['websocket']`) y traducción de errores por `code`.
+- [x] **[I]** `@front` `F1` Implementar el almacén por vuelo y el almacén de vuelos con fusión por `version` (`arch` §4.6), con los contadores como `computed()`.
+- [x] **[V]** `@front` `F1` Probar fusión por versión, duplicados, eventos de vuelo antes de cargar el catálogo, descarte del bloqueo propio y cambio de suscripción al navegar entre vuelos. [Sincronización](architecture.md#46-consistencia-del-cliente-fusión-por-versión). Evidencia: `inventory-store.spec.ts` y `flight-realtime.spec.ts`; 12 pruebas del frontend aprobadas. [Registro F1](handoff/frontend.md#f1--2026-11-19).
+- [x] **[I]** `@front` `F1` Implementar el adaptador falso descrito arriba y la configuración `fake` en `angular.json`. [Registro F1](handoff/frontend.md#f1--2026-11-19).
 - [ ] **[I]** `@front` `F2` Implementar la búsqueda (HU1): formulario, listado con UTC visible, estados cancelado y agotado, y actualización en su lugar con `flight.status_changed`.
 - [ ] **[I]** `@front` `F3` Implementar el mapa de asientos (HU2): selección con bloqueo, asiento propio resaltado, cuenta regresiva con `holdExpiresAt` y `serverNow`, recuperación con `myHold` y reversión ante `409`.
 - [ ] **[I]** `@front` `F3` Implementar el dashboard (HU4) con los contadores `computed()` del mismo almacén que pinta el mapa.
