@@ -1,4 +1,4 @@
-import { postgresOptions } from '@backend/persistence';
+import { postgresOptions, runSeed } from '@backend/persistence';
 import { DataSource } from 'typeorm';
 
 async function migrate(): Promise<void> {
@@ -16,6 +16,12 @@ async function migrate(): Promise<void> {
   try {
     const migrations = await dataSource.runMigrations();
     console.log(`Migraciones aplicadas: ${migrations.length}`);
+
+    const seed = await runSeed(dataSource);
+    console.log(
+      `Seed: ${seed.catalogFlights} vuelos en la ventana, ` +
+        `${seed.flightsInserted} vuelos y ${seed.seatsInserted} asientos nuevos`,
+    );
   } finally {
     await dataSource.destroy();
   }
