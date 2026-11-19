@@ -1,6 +1,6 @@
 # Seguimiento del carril frontend (Codex)
 
-Este archivo es el brief del carril y su registro de avance. Solo lo edita el carril frontend. Las casillas de [la checklist](../checklist.md) las marca el integrador a partir de la evidencia que anotes aquí.
+Este archivo es el brief del carril y su registro de avance. Solo lo edita el carril frontend. Las casillas de [la checklist](checklist.md) las marca el integrador a partir de la evidencia que anotes aquí.
 
 ## Alcance
 
@@ -9,14 +9,14 @@ Este archivo es el brief del carril y su registro de avance. Solo lo edita el ca
 | Rama | `lane/frontend` |
 | Carpeta | `B:\PROYECTOS\DAVIVIENDA\worktrees\lane-frontend` |
 | Puedes editar | `frontend/**`, este archivo y tu subsección de `docs/ia.md` |
-| No puedes editar | `backend/**`, `packages/shared`, `package.json` y `package-lock.json` de la raíz, `docs/checklist.md` ni los documentos de diseño |
+| No puedes editar | `backend/**`, `packages/shared`, `package.json` y `package-lock.json` de la raíz, `docs/handoff/checklist.md` ni los documentos de diseño |
 
 Trabaja directamente en esa carpeta. No crees otro worktree ni otra rama.
 
 ## Antes de empezar
 
 1. Lee `AGENTS.md` completo, en especial la sección «Angular 21».
-2. Lee [architecture.md](../architecture.md) §4.6, §4.7 y §9, y [contracts-and-open-questions.md](../contracts-and-open-questions.md) completo: es tu fuente de verdad mientras el backend no exista.
+2. Lee [architecture.md](../architecture.md) §4.6, §4.7 y §9, y [contracts-and-open-questions.md](contracts-and-open-questions.md) completo: es tu fuente de verdad mientras el backend no exista.
 3. Ejecuta `npm ci` y `npm run build` en tu worktree. No necesitas Docker ni base de datos para empezar.
 4. Comprueba que `packages/shared` trae la etiqueta `contracts-v1` en tu historia (`git describe --tags`).
 

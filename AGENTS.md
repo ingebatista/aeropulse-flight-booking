@@ -30,7 +30,7 @@ El trabajo se reparte en `git worktree` distintos. Antes de empezar, identifica 
 | --- | --- | --- |
 | `lane/backend` | Backend | [docs/handoff/backend.md](docs/handoff/backend.md) |
 | `lane/frontend` | Frontend | [docs/handoff/frontend.md](docs/handoff/frontend.md) |
-| `develop` | Integrador (humano) | [docs/checklist.md](docs/checklist.md) |
+| `develop` | Integrador (humano) | [docs/handoff/checklist.md](docs/handoff/checklist.md) |
 
 - Edita solo tu área. Solo el integrador cambia `packages/shared`, la checklist, los documentos de diseño, `package.json` y `package-lock.json` de la raíz.
 - No marques casillas de la checklist: anota tu evidencia en tu archivo de seguimiento.
@@ -72,7 +72,7 @@ Componentes standalone, signals, `computed()`, `@if`/`@for`, detección *zoneles
 - No registres ni guardes el número de tarjeta ni el CVV; solo `card_last4`, `card_brand` y la referencia del simulador.
 - `ADMIN_TOKEN` se compara con `timingSafeEqual`; con `NODE_ENV=production` la API no arranca si es el valor por defecto.
 - `join` del WebSocket solo acepta `search` y `flight:{uuid}`.
-- El *seed* genera vuelos desde hoy hasta el último día del mes en curso y trabaja en **UTC**. Su clave natural es `(flight_number, departure_at)`. El catálogo cerrado (`BAQ`, `BOG`, `MDE`) está en `docs/business-rules.md`. Las tablas y restricciones están en `docs/persistence.md`.
+- El *seed* genera vuelos desde hoy hasta el último día del mes en curso y trabaja en **UTC**. Su clave natural es `(flight_number, departure_at)`. El catálogo cerrado (`BAQ`, `BOG`, `MDE`) está en `docs/handoff/business-rules.md`. Las tablas y restricciones están en `docs/handoff/persistence.md`.
 
 ## Migraciones, entidades y permisos
 

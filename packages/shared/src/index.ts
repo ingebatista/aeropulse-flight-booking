@@ -1,7 +1,7 @@
 /**
  * Contratos v1 entre frontend y backend (etiqueta `contracts-v1`).
  *
- * Fuente de verdad: docs/contracts-and-open-questions.md. Este archivo solo
+ * Fuente de verdad: docs/handoff/contracts-and-open-questions.md. Este archivo solo
  * refleja lo que cruza el cable: tipos, valores cerrados y patrones de validación.
  * Congelado tras M0: cualquier cambio se pide como `CCR-n` al integrador.
  * No importa nada y no contiene lógica de negocio.

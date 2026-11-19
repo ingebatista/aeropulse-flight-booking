@@ -1,6 +1,6 @@
 # Reglas y decisiones de negocio · Reservas de vuelos
 
-Este documento presenta el comportamiento esperado desde la perspectiva del negocio. Se deriva de [architecture.md](architecture.md), que conserva el diseño técnico. **Es documentación de análisis, no evidencia de funcionalidad implementada.** Las propuestas pendientes de validación se identifican expresamente.
+Este documento presenta el comportamiento esperado desde la perspectiva del negocio. Se deriva de [architecture.md](../architecture.md), que conserva el diseño técnico. **Es documentación de análisis, no evidencia de funcionalidad implementada.** Las propuestas pendientes de validación se identifican expresamente.
 
 ## Alcance y conceptos
 

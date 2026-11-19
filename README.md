@@ -13,10 +13,10 @@ Sistema de reservas de vuelos en tiempo real. Permite buscar vuelos, elegir un a
 | --- | --- |
 | [docs/architecture.md](docs/architecture.md) | Arquitectura, concurrencia, tiempo real y decisiones técnicas |
 | [docs/ia.md](docs/ia.md) | Uso de inteligencia artificial |
-| [docs/business-rules.md](docs/business-rules.md) | Reglas de negocio, catálogo de vuelos y datos iniciales |
-| [docs/persistence.md](docs/persistence.md) | Esquema, restricciones y migraciones |
-| [docs/contracts-and-open-questions.md](docs/contracts-and-open-questions.md) | Rutas HTTP, eventos de Socket.IO y catálogo de errores |
-| [docs/checklist.md](docs/checklist.md) | Seguimiento de tareas y evidencias ([docs/evidence](docs/evidence/README.md)) |
+| [docs/handoff/business-rules.md](docs/handoff/business-rules.md) | Reglas de negocio, catálogo de vuelos y datos iniciales |
+| [docs/handoff/persistence.md](docs/handoff/persistence.md) | Esquema, restricciones y migraciones |
+| [docs/handoff/contracts-and-open-questions.md](docs/handoff/contracts-and-open-questions.md) | Rutas HTTP, eventos de Socket.IO y catálogo de errores |
+| [docs/handoff/checklist.md](docs/handoff/checklist.md) | Seguimiento de tareas y [evidencias de M5](docs/handoff/evidence/README.md) |
 
 ## Arquitectura
 
@@ -49,13 +49,15 @@ REST atiende las búsquedas y los comandos (bloquear, liberar, confirmar). Socke
 
 ## Ejecutar con Docker Compose
 
-Es el camino recomendado para evaluar el proyecto. Requiere Docker con Compose v2 y no necesita ningún archivo `.env`.
+Para evaluar el proyecto, instala Git y Docker con Compose v2. Con el motor de Docker en ejecución, clona y levanta el proyecto desde una terminal.
 
 ```sh
+git clone https://github.com/ingebatista/aeropulse-flight-booking.git
+cd aeropulse-flight-booking
 docker compose up --build
 ```
 
-La primera compilación de las imágenes puede tardar varios minutos. Después abre `http://localhost:8080`. La salud de la API está en `http://localhost:8080/api/health`.
+Si vas a evaluar una rama o etiqueta específica, agrega `--branch <referencia>` a `git clone`. Compose usa valores locales por defecto y funciona sin archivo `.env`. La primera compilación de las imágenes puede tardar varios minutos. Cuando arranque `web`, abre `http://localhost:8080`. La salud de la API está en `http://localhost:8080/api/health` y debe devolver `200` con `{"status":"ok"}`.
 
 Compose arranca cuatro servicios en este orden: `db` (PostgreSQL 17), `migrate` (migraciones y datos iniciales con el rol propietario), `api` (NestJS con el rol `app`, que no puede ejecutar DDL) y `web` (Nginx con Angular, que reenvía `/api/` y `/ws/` a la API). Solo `web` se publica, en `127.0.0.1:8080`.
 
@@ -63,14 +65,14 @@ Para detener todo: `docker compose down`. Para borrar también los datos y volve
 
 ### Probar la aplicación
 
-1. **Buscar.** En `Buscar vuelos` elige una ruta con resultados. `BOG → MDE` tiene tres horarios por día.
-2. **Elegir asiento.** Abre un vuelo, selecciona un asiento y se bloquea para ti. En la pestaña de otro cliente aparece como «Bloqueado» sin recargar.
-3. **Probar dos clientes.** Abre dos pestañas escribiendo la dirección en la barra. No uses «Duplicar pestaña»: copiaría el `sessionStorage` y compartiría el identificador de cliente.
+1. **Buscar.** En `Buscar vuelos` elige una ruta con resultados. El catálogo de `BOG → MDE` tiene hasta tres salidas futuras por día UTC.
+2. **Abrir dos clientes.** Abre la aplicación en dos pestañas independientes escribiendo la dirección en la barra. Así cada pestaña genera su propio identificador de cliente.
+3. **Elegir asiento.** Abre el mismo vuelo en las dos pestañas y selecciona un asiento en una de ellas. En la otra aparece como «Bloqueado» sin recargar. La vista «Ocupación» muestra los tres contadores del vuelo y se actualiza con los mismos eventos.
 4. **Confirmar.** Entra al checkout, escribe nombre y apellido y usa una de las tarjetas que muestra la pantalla: `4242 4242 4242 4242` se aprueba y `4000 0000 0000 0002` se rechaza (el asiento sigue bloqueado).
 5. **Consultar el boleto.** En `Consultar boleto`, con el código de reserva y el apellido.
-6. **Ver el vencimiento.** El bloqueo dura 300 segundos. Para verlo en 30, arranca con `HOLD_TTL_SECONDS=30` (ver más abajo).
-7. **Ver «Agotado».** El vuelo `AP105` (`BOG → MDE`, 22:30 UTC) tiene solo seis asientos. Reserva los seis en una pestaña y mira cómo pasa a «Agotado» en el listado abierto en otra.
-8. **Administración.** En `/admin/acceso` entra con el token `aeropulse-admin-dev` y cambia el estado de un vuelo a retrasado o cancelado. El cambio llega a las pestañas de búsqueda.
+6. **Ver el vencimiento.** El bloqueo dura 300 segundos. Para verlo en 30, añade `HOLD_TTL_SECONDS=30` a un archivo `.env` y vuelve a ejecutar `docker compose up -d`. En el mapa, observa el aviso al vencer y cómo el asiento vuelve a estar disponible en la otra pestaña.
+7. **Ver «Agotado».** El vuelo `AP105` (`BOG → MDE`, 22:30 UTC) tiene seis asientos. Reserva los que queden disponibles en una pestaña y observa cómo el listado abierto en la otra pasa a «Agotado». Si esa salida ya pasó, elige el siguiente día UTC con datos.
+8. **Administración.** En `/admin/acceso` entra con el token `aeropulse-admin-dev` y marca otro vuelo como retrasado o cancelado. El cambio llega a las pestañas de búsqueda.
 
 Las horas de salida y de llegada se muestran en UTC.
 
@@ -87,7 +89,7 @@ Todas tienen valor por defecto; la lista completa está en [.env.example](.env.e
 
 Con `APP_NODE_ENV=production` la API se niega a arrancar si `ADMIN_TOKEN` es el valor de desarrollo.
 
-Los datos iniciales cubren desde el día en que corre el *seed* hasta el último día del mes en curso, en UTC. Es una limitación conocida: el último día del mes, tras la salida de `AP105`, ya no hay un vuelo de demostración futuro. [docs/business-rules.md](docs/business-rules.md#catálogo-y-datos-iniciales) tiene el catálogo completo.
+Los datos iniciales cubren desde el día en que corre el *seed* hasta el último día del mes en curso, en UTC. Es una limitación conocida: el último día del mes, tras la salida de `AP105`, ya no hay un vuelo de demostración futuro. [docs/handoff/business-rules.md](docs/handoff/business-rules.md#catálogo-y-datos-iniciales) tiene el catálogo completo.
 
 ## Desarrollo local
 
@@ -96,6 +98,12 @@ Requiere Node.js 24 (desde 24.11, ver `.nvmrc`), npm 11 o superior y Docker para
 ```sh
 npm ci            # instalar dependencias (una vez)
 npm run db:dev    # PostgreSQL en Docker, migraciones y datos iniciales
+docker compose logs -f migrate
+```
+
+Cuando aparezca el resumen del seed, sal del seguimiento de logs con `Ctrl + C` si sigue abierto y comprueba que `docker compose ps -a migrate` muestre `Exited (0)`. Puedes arrancar la API y el frontend con el siguiente comando.
+
+```sh
 npm run dev       # API y frontend con recarga automática (se queda corriendo)
 ```
 
@@ -138,7 +146,7 @@ Para usar PostgreSQL fuera de Compose, prepara el rol propietario y el rol `app`
 ## Pruebas y calidad
 
 ```sh
-npm test            # shared + backend (Jest) + frontend (Vitest)
+npm test            # compila shared y ejecuta Jest (backend) y Vitest (frontend)
 npm run lint        # ESLint
 npm run format:check
 npm run verify      # build, lint, format:check y test, en ese orden
@@ -158,7 +166,8 @@ backend/
 frontend/             Angular 21: búsqueda, mapa de asientos, checkout, ocupación y administración
 packages/shared/      Contratos que cruzan el cable (DTOs, errores y eventos)
 docker/db-init/       Creación del rol `app` de PostgreSQL
-docs/                 Arquitectura, reglas, contratos, evidencias y uso de IA
+docs/                 Documentos de entrega (arquitectura y uso de IA)
+  handoff/            Seguimiento, reglas, persistencia, contratos y evidencias
 ```
 
 Todos los workspaces usan TypeScript 5.9 y un único `package-lock.json`.

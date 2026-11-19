@@ -1,6 +1,6 @@
 # Contratos entre frontend y backend
 
-**Estado: diseño cerrado para la kata.** Aquí se definen las rutas, los formatos y el comportamiento observable. La implementación y sus pruebas se siguen en la checklist. El diseño técnico y las reglas del catálogo se describen en [architecture.md](architecture.md) y [business-rules.md](business-rules.md).
+**Estado: diseño cerrado para la kata.** Aquí se definen las rutas, los formatos y el comportamiento observable. La implementación y sus pruebas se siguen en la checklist. El diseño técnico y las reglas del catálogo se describen en [architecture.md](../architecture.md) y [business-rules.md](business-rules.md).
 
 ## Convenciones y validaciones
 

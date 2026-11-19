@@ -12,7 +12,7 @@ docker compose -p aeropulse-evidence up -d --build --wait --wait-timeout 300
 
 Sin archivo `.env`: Compose usó sus valores por defecto (`HOLD_TTL_SECONDS=300`). Para probar el vencimiento (6.C.5) se reinició solo la API con `HOLD_TTL_SECONDS=30 docker compose -p aeropulse-evidence up -d --wait api`.
 
-Los dos «clientes» de 6.C.1 son dos pestañas abiertas escribiendo la URL (no con «Duplicar pestaña», que copia `sessionStorage` y compartiría el `clientId`, [arch §5](../architecture.md#5-identidad-seguridad-y-límites)). Sus `clientId` empiezan por `2a131186` y `fc5605da`: son distintos.
+Los dos «clientes» de 6.C.1 son dos pestañas abiertas escribiendo la URL (no con «Duplicar pestaña», que copia `sessionStorage` y compartiría el `clientId`, [arch §5](../../architecture.md#5-identidad-seguridad-y-límites)). Sus `clientId` empiezan por `2a131186` y `fc5605da`: son distintos.
 
 ## 7.2 · `docker compose up` sin `.env` y salud con la base
 
@@ -39,7 +39,7 @@ Vuelo `AP103` (`BOG → MDE`, 2026-11-19, 289.000 COP), asiento `3A`, a las 14:2
 | Confirmación `POST /api/bookings/confirm` (tarjeta terminada en `4242`) | `201`, código `DKQMKY` |
 | Consulta `GET /api/bookings/DKQMKY?lastName=Gómez` | `200`, mismo boleto: `AP103`, `3A`, 289.000 COP |
 
-Esta parte se ejecutó por HTTP, no con la interfaz. La interfaz con el backend real (búsqueda, bloqueo, checkout y boleto) la verificó el carril frontend: [F2–F5](../handoff/frontend.md#f2f5--capacidades-reales--2026-11-19).
+Esta parte se ejecutó por HTTP, no con la interfaz. La interfaz con el backend real (búsqueda, bloqueo, checkout y boleto) la verificó el carril frontend: [F2–F5](../frontend.md#f2f5--capacidades-reales--2026-11-19).
 
 ## 7.4 · Demostración de `AP105` (vuelo de seis asientos)
 
@@ -110,3 +110,19 @@ Limitaciones de esta prueba:
 ```powershell
 docker compose -p aeropulse-evidence down -v
 ```
+
+## 8 · Verificación desde un clon limpio
+
+El 2026-11-19 se verificó `develop` en `9a06297` mediante dos clones nuevos, uno del repositorio local y otro de GitHub con los gestores de credenciales desactivados. Ambos partieron sin `.env`, sin `node_modules` y con volúmenes de PostgreSQL vacíos. Docker reutilizó capas de compilación.
+
+| Prueba | Resultado observado |
+| --- | --- |
+| `npm ci` en el clon local con Node 24.16.0 y npm 11.13.0 | Código 0, 1143 paquetes instalados. La auditoría completa informó 38 avisos moderados. `npm audit --omit=dev` informó 0 vulnerabilidades. |
+| `npm run verify` en el clon local | Código 0. Build, ESLint y Prettier pasaron. El backend aprobó 247 pruebas en 30 suites con PostgreSQL real y el frontend aprobó 34 pruebas en 8 archivos. |
+| `docker compose up --build` sin `.env` | En ambos clones, `db` y `api` saludables, `migrate` salió con código 0, se aplicaron dos migraciones y el seed creó 116 vuelos y 2568 asientos. Nginx respondió `200 {"status":"ok"}` por `/api/health`. El clon local usó el puerto 8080 y el de GitHub usó `WEB_PORT=18080` para aislar las dos pruebas. |
+| Demostración en el clon local | En `AP103/1A`, el titular vio «Mi asiento» y el otro cliente vio «Bloqueado» sin recargar. Tras confirmar, el segundo cliente vio «Reservado» y el dashboard pasó de 23 disponibles, 1 bloqueado y 0 reservados a 23, 0 y 1. El checkout mostró el rechazo `402` y, al reintentar con la tarjeta aprobada, emitió un boleto que se recuperó por código y apellido. |
+| Agotado, administración y vencimiento | Se confirmaron las seis reservas de `AP105` desde el navegador. El otro cliente vio «Agotado» y, tras cambiar `AP103` desde el panel, «Retrasado», sin recargar. Con `HOLD_TTL_SECONDS=30`, el mapa mostró la cuenta de 30 s y «Venció el bloqueo del asiento 1B.». |
+| Compra en el clon de GitHub | Desde la búsqueda se abrió `AP103`, se bloqueó `1A` y el checkout mostró «Reserva confirmada» con ese vuelo y asiento. |
+| Desarrollo local | `npm run db:dev` publicó la base en `127.0.0.1:5433` y el servicio de migración terminó con código 0. `npm run dev` levantó NestJS y Angular. La salud devolvió `{"status":"ok"}` en `3000` y a través del proxy de Angular en `4200`. |
+
+La consulta anónima de referencias de GitHub y el clon confirmaron el acceso público. En la revisión, `develop` apuntaba a `9a06297` y la rama predeterminada `main` a `f5b1416`. Queda por definir la referencia que se entregará al evaluador.

@@ -7,7 +7,7 @@ Este documento cubre los cuatro puntos que pide la kata: herramientas, prompts y
 | Herramienta | Modelo | Dónde se usó |
 | --- | --- | --- |
 | Claude Code (CLI y app de escritorio) | Claude Sonnet 5.5 en la mayoría de los commits y Claude Opus 5.5 en tres de ellos (según el pie `Co-Authored-By` de cada commit) | Diseño y contratos, carril backend (`backend/**`), integración en `develop`, evidencias y documentación |
-| Codex (app de escritorio) | _Pendiente (humano): anotar el modelo exacto que usó el carril frontend._ | Carril frontend (`frontend/**`), de F1 a F5 |
+| Codex (app de escritorio) | `gpt-6.2-astra`, `gpt-6.2-sol` y `gpt-6.1-terra`, según los metadatos de la sesión del carril. `gpt-6.2-sol` fue el más utilizado | Carril frontend (`frontend/**`), de F1 a F5 |
 | Navegador integrado, Chrome y Lighthouse | No aplica | Revisión de la interfaz a 360 y 1366 px y auditoría de accesibilidad de F5 (resultados en [handoff/frontend.md](handoff/frontend.md)) |
 
 Según las reglas del proyecto, el humano (integrador) revisa la evidencia de cada hito y lo fusiona en `develop`.
@@ -19,18 +19,18 @@ El proyecto no se hizo con prompts sueltos. Se escribieron una vez las reglas y 
 | Caso de uso | Artefacto | Qué fija |
 | --- | --- | --- |
 | Reglas permanentes para cualquier agente | [AGENTS.md](../AGENTS.md) (que `CLAUDE.md` importa) | Estructura, stack fijo, las 8 invariantes de concurrencia, la tabla de sintaxis de TypeORM 1.x y los comandos de verificación |
-| Diseño de arquitectura | [architecture.md](architecture.md), [persistence.md](persistence.md) y [contracts-and-open-questions.md](contracts-and-open-questions.md) | Las decisiones y sus descartes quedaron escritas antes de implementar |
+| Diseño de arquitectura | [architecture.md](architecture.md), [persistence.md](handoff/persistence.md) y [contracts-and-open-questions.md](handoff/contracts-and-open-questions.md) | Las decisiones y sus descartes quedaron escritas antes de implementar |
 | Generación de código por carril | [handoff/backend.md](handoff/backend.md) y [handoff/frontend.md](handoff/frontend.md) | Alcance por carpeta, lectura previa, hitos y una «definición de hecho» por hito |
 | Pruebas | Cada hito del carril backend | Pruebas de concurrencia contra PostgreSQL real, sin simular la base de datos |
-| Paralelización | [checklist.md](checklist.md), «Ejecución en paralelo» | Un `git worktree` por carril, `packages/shared` congelado y un solo dueño por archivo |
+| Paralelización | [checklist.md](handoff/checklist.md), «Ejecución en paralelo» | Un `git worktree` por carril, `packages/shared` congelado y un solo dueño por archivo |
 
 Fragmentos reales de esos briefs:
 
-- _«`npm run build`, `npm test` y `npm run lint` pasan en tu worktree, con la salida real pegada en el registro.»_ (definición de «hecho» de ambos carriles).
+- _«`npm run build`, `npm test -w frontend` y `npm run lint` pasan en tu worktree, con la salida real pegada en el registro.»_ (definición de «hecho» del carril frontend).
 - _«Las respuestas, los eventos y los códigos de error coinciden con los contratos. Si algo no encaja, no lo cambies en silencio: abre un `CCR`.»_ (carril backend).
 - _«Nunca *check-then-act*. Bloquear, liberar, expirar y confirmar un asiento son una sola sentencia `UPDATE` condicional con `RETURNING`.»_ (invariante 1 de `AGENTS.md`).
 
-Ese esquema dio dos efectos medibles: los agentes devolvían salida real de comandos en vez de afirmaciones, y los desacuerdos con el contrato salían como `CCR` en lugar de cambios silenciosos. Se abrieron dos, ambos aprobados e integrados en `33c81bf`: `NOT_FOUND` en `packages/shared` y `socket.io-client` como dependencia de desarrollo del backend.
+Los registros de cada carril incluyen las salidas de los comandos. También se abrieron dos solicitudes de cambio, ambas integradas en `33c81bf`. Se añadió `NOT_FOUND` a `packages/shared` y se declaró `socket.io-client` como dependencia de desarrollo del backend.
 
 ## 3. Refactorización y criterio propio
 
@@ -71,7 +71,8 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 
 **Dónde aportó más valor la IA**
 
-- **Pruebas de concurrencia.** El backend lleva 247 pruebas contra PostgreSQL real, entre ellas 50 `hold` simultáneos sobre un asiento, 20 confirmaciones con la misma `Idempotency-Key` y dos confirmaciones de los dos últimos asientos.- **Trabajo en paralelo.** Con las reglas de aislamiento, backend y frontend avanzaron a la vez en worktrees distintos sin conflictos en `packages/shared`.
+- **Pruebas de concurrencia.** El backend reúne 247 pruebas unitarias y de integración. Las de concurrencia usan PostgreSQL real y reproducen 50 `hold` simultáneos sobre un asiento, 20 confirmaciones con la misma `Idempotency-Key` y la compra simultánea de los dos últimos asientos.
+- **Trabajo en paralelo.** Backend y frontend avanzaron a la vez en worktrees distintos con el contrato compartido congelado.
 - **Documentación contrastada.** El diseño, los contratos y la evidencia se mantuvieron enlazados y revisables.
 
 **Dónde exigió más revisión humana**
@@ -80,6 +81,6 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 - La sintaxis de TypeORM 1.x, que los modelos tienden a confundir con la 0.3.
 - Las pruebas que pasan por la razón equivocada, como la del bloqueo vencido y la de la tarjeta.
 
-**Tiempo.** Los commits van del 18 de noviembre de 2026 (19:53) al 19 de noviembre de 2026 (09:40), es decir, unas 14 horas de calendario entre el primer y el último commit, sin contar las pausas.
+**Tiempo.** Entre el primer commit (`169e586`, 18 de noviembre de 2026 a las 19:53) y la verificación previa a esta revisión (`9a06297`, 19 de noviembre a las 10:12) transcurrieron unas 14 h 18 min en hora de Bogotá. Ese intervalo incluye pausas y trabajo en paralelo.
 
-_Pendiente (humano): estimar el tiempo ahorrado frente a hacerlo sin IA y anotarlo aquí. Solo la persona que hizo el trabajo puede dar esa cifra, y no se inventó una._
+_Pendiente de confirmación del responsable del proyecto. Estimar las horas de trabajo equivalente sin IA y el esfuerzo humano efectivo invertido. La diferencia permite informar un ahorro aproximado._
