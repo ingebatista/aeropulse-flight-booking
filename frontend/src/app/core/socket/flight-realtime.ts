@@ -117,6 +117,14 @@ export class FlightRealtime {
     socket.connect();
   }
 
+  retrySearch(): void {
+    if (this.searchJoined) {
+      this.runSearch();
+    } else {
+      this.retry();
+    }
+  }
+
   stop(): void {
     this.watchOptions = null;
     this.close();

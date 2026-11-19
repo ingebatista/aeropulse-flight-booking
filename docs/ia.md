@@ -19,5 +19,6 @@ _(sin entradas)_
 ### Carril frontend (Codex)
 
 - **19 de noviembre de 2026.** La prueba del vencimiento usaba `vi.waitFor`, que adelantaba el reloj simulado y cambiaba el `serverNow` esperado. La ajusté para procesar el reconocimiento del socket sin avanzar el tiempo.
+- **19 de noviembre de 2026.** Axe detectó una diferencia entre el nombre accesible y las abreviaturas visibles de los botones de fecha. Usé el texto visible como nombre y la fecha completa en UTC como descripción.
 
 <!-- fin carril frontend -->

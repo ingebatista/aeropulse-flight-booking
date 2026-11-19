@@ -96,3 +96,22 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 - Capacidades reales verificadas: ninguna. `search`, `seats`, `realtime`, `booking` y `admin` están activos en el adaptador falso. Las pruebas son pre-evidencia de F1.
 - Desviaciones del contrato: ninguna detectada en los casos probados.
 - Cambios que necesita la documentación: ninguno.
+
+### F2 · 2026-11-19
+
+- Hecho: búsqueda de vuelos en la ruta inicial con filtros, intercambio de origen y destino, días adyacentes y resultados en UTC y COP. La vista actualiza el estado operativo y «Agotado» por separado, mantiene las filas al reconectar y ofrece reintento.
+- La prueba de componente cubre el reconocimiento de `search`, la validación y el envío de filtros, la fecha inicial alternativa, la respuesta vacía, el reintento, la reconexión y las actualizaciones por versión.
+- Comandos y salida:
+
+  | Comando | Salida |
+  | --- | --- |
+  | `npm run build` | `webpack 5.106.2 compiled successfully` para API y migraciones. Angular generó el *chunk* diferido `flight-search-component`. |
+  | `npm run build -w frontend -- --configuration fake` | `Application bundle generation complete. [1.742 seconds]` |
+  | `npm test -w frontend` | `Test Files  5 passed (5)` · `Tests  18 passed (18)` |
+  | `npm run lint` | `eslint .`, código de salida `0`. |
+  | Chrome con `npm start -w frontend -- --configuration fake` | Listado revisado a 1366 y 360 px. Ancho del documento de 360 px en móvil. Tab mostró un contorno de 3 px y Enter intercambió los aeropuertos conservando la fecha. |
+  | Lighthouse móvil, modo `snapshot` | `Accessibility: 100` y cero comprobaciones de accesibilidad fallidas. |
+
+- Capacidades reales verificadas: ninguna. `search` sigue en el adaptador falso hasta integrar M1 en `develop`. La verificación de Socket.IO real queda para M2.
+- Desviaciones del contrato: ninguna detectada en los casos probados.
+- Cambios que necesita la documentación: ninguno.
