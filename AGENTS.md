@@ -22,6 +22,21 @@ Angular 21 · NestJS 11.2.x (CommonJS, modo monorepo, webpack) · TypeScript `~5
 - No agregues dependencias, capas ni abstracciones que el diseño no pida. Puertos solo en `PaymentGateway` y `EventBus`.
 - Anota en `docs/ia.md` (sección «Registro») cada caso donde corregiste un error propio o el humano te corrigió.
 
+## Carriles en paralelo
+
+El trabajo se reparte en `git worktree` distintos. Antes de empezar, identifica tu carril por la rama (`git branch --show-current`):
+
+| Rama | Carril | Lee y actualiza |
+| --- | --- | --- |
+| `lane/backend` | Backend | [docs/handoff/backend.md](docs/handoff/backend.md) |
+| `lane/frontend` | Frontend | [docs/handoff/frontend.md](docs/handoff/frontend.md) |
+| `develop` | Integrador (humano) | [docs/checklist.md](docs/checklist.md) |
+
+- Edita solo tu área. Solo el integrador cambia `packages/shared`, la checklist, los documentos de diseño, `package.json` y `package-lock.json` de la raíz.
+- No marques casillas de la checklist: anota tu evidencia en tu archivo de seguimiento.
+- Si necesitas un cambio en `packages/shared`, no lo hagas: regístralo como `CCR-n` en tu archivo de seguimiento y detén esa tarea.
+- El registro de correcciones de IA va en tu subsección de `docs/ia.md` («Registro por carril»), antes de su marcador de cierre.
+
 ## Invariantes de concurrencia (no negociables)
 
 1. **Nunca** *check-then-act*. Bloquear, liberar, expirar y confirmar un asiento son **una sola sentencia `UPDATE` condicional** con `RETURNING`; el resultado se decide por `affected`.
@@ -57,7 +72,7 @@ Componentes standalone, signals, `computed()`, `@if`/`@for`, detección *zoneles
 - No registres ni guardes el número de tarjeta ni el CVV; solo `card_last4`, `card_brand` y la referencia del simulador.
 - `ADMIN_TOKEN` se compara con `timingSafeEqual`; con `NODE_ENV=production` la API no arranca si es el valor por defecto.
 - `join` del WebSocket solo acepta `search` y `flight:{uuid}`.
-- El *seed* genera vuelos para los próximos 14 días a partir de la fecha actual y es idempotente.
+- El *seed* genera vuelos desde hoy hasta el último día del mes en curso y trabaja en **UTC**. Su clave natural es `(flight_number, departure_at)`. El catálogo cerrado (`BAQ`, `BOG`, `MDE`) está en `docs/business-rules.md`. Las tablas y restricciones están en `docs/persistence.md`.
 
 ## Migraciones, entidades y permisos
 
