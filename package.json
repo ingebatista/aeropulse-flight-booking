@@ -1,0 +1,35 @@
+{
+  "name": "aeropulse-flight-booking",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/shared"
+  ],
+  "engines": {
+    "node": "^24.11.0",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "build": "npm run build:shared && npm run build -w backend && npm run build -w frontend",
+    "build:shared": "npm run build -w @aeropulse/shared",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run build:shared && npm test -w backend && npm test -w frontend",
+    "dev": "npm run build:shared && concurrently --kill-others --names api,web \"npm run dev -w backend\" \"npm start -w frontend\"",
+    "db:dev": "docker compose -f docker-compose.yml -f compose.dev.yaml up -d --build db migrate",
+    "db:migrate": "npm run build:shared && npm run build:migrate -w backend && node --env-file-if-exists=.env backend/dist/apps/migrate/main.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.73.0"
+  }
+}

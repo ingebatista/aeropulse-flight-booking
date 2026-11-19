@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-flights}
+      POSTGRES_USER: ${DB_OWNER:-flights_owner}
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:-flights_owner_dev}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        APP: migrate
+    environment:
+      PGHOST: db
+      PGPORT: '5432'
+      DB_NAME: ${DB_NAME:-flights}
+      DB_OWNER: ${DB_OWNER:-flights_owner}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:-flights_owner_dev}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      PGHOST: db
+      PGPORT: '5432'
+      DB_NAME: ${DB_NAME:-flights}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_dev}
+      PORT: '3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - '127.0.0.1:${WEB_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
