@@ -266,8 +266,8 @@ Empieza cuando M4 y F5 están en `develop`.
 - [ ] **[V]** `@integ` `M5` Ejecutar ese comando y confirmar que pasa.
 - [ ] **[V]** `@integ` `M5` Contrastar `docs/architecture.md` con el comportamiento realmente implementado y corregir las diferencias, usando los cambios que cada carril anotó en su seguimiento. Avance: arch §5 y §4.4 y la convención `header.<nombre>` del contrato se corrigieron en `9c66e48`; falta repasar el resto de secciones.
 - [ ] **[V]** `@integ` `M5` Contrastar la lista de requisitos de la sección 0 con lo entregado: cada requisito cubierto, con su evidencia, o declarado como limitación.
-- [ ] **[D]** `@integ` `M5` Completar `docs/ia.md` con el uso de herramientas, prompts, correcciones y aportes. Cada carril ya alimenta su subsección; el integrador la unifica y cierra.
-- [ ] **[D]** `@integ` `M5` Verificar que el README explique cómo instalar, ejecutar y probar el proyecto.
+- [ ] **[D]** `@integ` `M5` Completar `docs/ia.md` con el uso de herramientas, prompts, correcciones y aportes. Cada carril ya alimenta su subsección; el integrador la unifica y cierra. Avance (2026-11-19): [ia.md](ia.md) unificado con herramientas, prompts, correcciones por área e impacto. **Pendiente (humano):** el modelo exacto del carril frontend (Codex) y la estimación del tiempo ahorrado.
+- [ ] **[D]** `@integ` `M5` Verificar que el README explique cómo instalar, ejecutar y probar el proyecto. Avance (2026-11-19): [README](../README.md) reescrito (resumen, diagrama, Docker, guía de prueba, desarrollo local, pruebas y estructura); sus enlaces y scripts se comprobaron. **Pendiente:** seguirlo paso a paso desde un clon limpio (siguiente tarea de 8.7).
 - [ ] **[V]** `@integ` `M5` Probar la ejecución y la demostración desde un clon limpio del repositorio.
 - [ ] **[V]** `@integ` `M5` Confirmar que el repositorio de entrega sea público y accesible.
 - [ ] **[D]** `@integ` `M5` Preparar la demostración y la sustentación de las decisiones y limitaciones (apoyándose en el registro de decisiones de la sección 0).
