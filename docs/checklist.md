@@ -28,7 +28,7 @@ Cada regla se define en un solo lugar (secciones 1 a 4). En las secciones poster
 
 **Punteros.** Esta lista no repite el contenido de las decisiones; solo señala dónde están. `arch` = [architecture.md](architecture.md), `ctx` = `contexto-kata-reservas-vuelos.md` y `plan` = `analisis-arquitectura-kata.md`. Los dos últimos documentos no están en la carpeta del proyecto: si se copian a `docs/`, hay que actualizar estos punteros. Una nota **Pendiente:** explica por qué una tarea sigue abierta aunque el diseño ya la toque.
 
-**Estado del diseño (revisión del 2026-11-18).** La puerta documental de M0 está cerrada para las secciones 4 y 6.2 de la kata. Existen contratos en `packages/shared`, configuración de los servicios, la ruta de salud y la entrada de Socket.IO. La preparación de los carriles, la implementación de las historias y su verificación se siguen en los hitos de abajo.
+**Estado del diseño (revisión del 2026-11-19).** La puerta documental de M0 está cerrada y la oleada 0 también (CCR-1, CCR-2, límites de tasa y script `verify`). Los hitos M1 a M4 y F1 a F5 están integrados en `develop`. En M5, la evidencia del flujo real y de §6.C está en [docs/evidence](evidence/README.md); queda pendiente el texto de la interfaz para los errores de §6.C.5 y los ítems de §8 que dependen del cierre del desarrollo.
 
 ## Ejecución en paralelo
 
@@ -218,7 +218,7 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 
 ### 6.A Backend (carril `@back`)
 
-- [x] **[I]** `@back` `M1` Implementar la validación de entradas y el catálogo de errores de §4 (`ValidationPipe` estricta, forma `{ error: { code, message } }`, `fields` en `VALIDATION_ERROR`) y `GET /api/flights`. [Especificación de contratos](contracts-and-open-questions.md). Evidencia: `backend/apps/api/src/http` (`ApiValidationPipe`, `ApiExceptionFilter`, `FlightsController`) y `backend/test/api/flights-search.spec.ts`. **Pendiente:** el `404` de ruta inexistente usa `INTERNAL_ERROR` hasta resolver CCR-1.
+- [x] **[I]** `@back` `M1` Implementar la validación de entradas y el catálogo de errores de §4 (`ValidationPipe` estricta, forma `{ error: { code, message } }`, `fields` en `VALIDATION_ERROR`) y `GET /api/flights`. [Especificación de contratos](contracts-and-open-questions.md). Evidencia: `backend/apps/api/src/http` (`ApiValidationPipe`, `ApiExceptionFilter`, `FlightsController`) y `backend/test/api/flights-search.spec.ts`. CCR-1 se resolvió en `33c81bf`: el `404` de una ruta inexistente usa `NOT_FOUND`.
 - [x] **[I]** `@back` `M2` Implementar `EventBus` (puerto y adaptador en proceso), `POST` y `DELETE` del bloqueo, el barrido de 1 s y el *gateway* de Socket.IO (`join`, instantánea con `myHold` y `seat.changed`). Evidencia: `HoldService`, `ExpirySweeper`, `SnapshotService`, `SeatsController`, `RealtimeGateway` y `test/realtime/realtime.spec.ts` (9 pruebas con `socket.io-client`; ver CCR-2). `npm test -w backend`: 137 pruebas pasan.
 - [x] **[I]** `@back` `M3` Implementar `PaymentGateway` con su simulador, `POST /api/bookings/confirm`, `GET /api/bookings/{code}` y el evento `flight.status_changed` por agotado. Evidencia: `PaymentGateway`/`SimulatedPaymentGateway`, `BookingService`, `BookingsController` y `test/bookings/*.spec.ts` (incluido `ticket.spec.ts`). `npm test -w backend`: 205 pruebas pasan.
 - [x] **[I]** `@back` `M4` Implementar `PATCH /api/admin/flights/{flightId}/status` con `AdminTokenGuard`, además de límite de tasa, `helmet` y el arranque seguro en producción. Evidencia: `backend/test/admin/flight-status.spec.ts` (transiciones, `401` con `WWW-Authenticate: Bearer`, `409`, carrera con `hold`), `startup.spec.ts` (no arranca en producción con el token de desarrollo) y `backend/test/http/rate-limit.spec.ts` (`429` con `Retry-After` y cabeceras de `helmet`). Límites por defecto: global 120, `hold` 30, `confirm` 10 y admin 30 por minuto, por ruta y por IP.
@@ -243,20 +243,20 @@ Durante el desarrollo inicial, el frontend usó un adaptador en memoria para rep
 
 Estas comprobaciones necesitan frontend y backend reales, así que se hacen en M5. El carril frontend puede aportar una pre-evidencia con el adaptador falso, pero no sustituye la evidencia final.
 
-- [ ] **[V]** `@integ` `M5` Reflejar los cambios de asiento en tiempo real entre dos pestañas o navegadores. Evidencia: _(captura o test e2e)_
-- [ ] **[V]** `@integ` `M5` Actualizar el listado ante cambios de estado o agotamiento de un vuelo (§2). Evidencia: _(captura o test e2e)_
-- [ ] **[V]** `@integ` `M5` Mostrar en el dashboard los conteos de asientos disponibles, bloqueados y reservados. Evidencia: _(captura)_
-- [ ] **[V]** `@integ` `M5` Verificar la recuperación del estado tras una desconexión o recarga y el manejo de eventos duplicados o desordenados (usando las versiones de §4). Evidencia: _(test)_
-- [ ] **[V]** `@integ` `M5` Comprobar los mensajes para conflictos, vencimiento y pérdida de conexión, según el catálogo de errores de §4. Evidencia: _(captura)_
+- [x] **[V]** `@integ` `M5` Reflejar los cambios de asiento en tiempo real entre dos pestañas o navegadores. Evidencia (2026-11-19): `2B` bloqueado en una pestaña y «Bloqueado» en la otra sin recargar, con `clientId` distintos; tests `realtime-e2e.spec.ts` y `flight-realtime.spec.ts`. [Registro](evidence/README.md#6c1--cambios-de-asiento-en-tiempo-real-entre-dos-pestañas)
+- [x] **[V]** `@integ` `M5` Actualizar el listado ante cambios de estado o agotamiento de un vuelo (§2). Evidencia (2026-11-19): `AP103` pasó a «Retrasado» desde administración y `AP105` a «Agotado» al venderse sus seis asientos, ambos en el listado sin recargar. [Registro](evidence/README.md#6c2--listado-ante-cambio-de-estado)
+- [x] **[V]** `@integ` `M5` Mostrar en el dashboard los conteos de asientos disponibles, bloqueados y reservados. Evidencia (2026-11-19): `23` disponibles, `1` bloqueado y `0` reservados con `2B` bloqueado. [Registro](evidence/README.md#6c3--dashboard-con-los-contadores)
+- [x] **[V]** `@integ` `M5` Verificar la recuperación del estado tras una desconexión o recarga y el manejo de eventos duplicados o desordenados (usando las versiones de §4). Evidencia (2026-11-19): `myHold` recuperado tras recargar (`Mi asiento · 2B`) y tests `inventory-store.spec.ts`, `flight-realtime.spec.ts` (6 pruebas) y `realtime-e2e.spec.ts` (3 pruebas) en verde. [Registro](evidence/README.md#6c4--recuperación-tras-recargar-y-eventos-duplicados-o-desordenados)
+- [ ] **[V]** `@integ` `M5` Comprobar los mensajes para conflictos, vencimiento y pérdida de conexión, según el catálogo de errores de §4. Avance (2026-11-19): `409 SEAT_UNAVAILABLE`, `402 PAYMENT_DECLINED` y `409 HOLD_INACTIVE` verificados en la API, y «Sin conexión» / «Conexión restablecida» en la interfaz. [Registro](evidence/README.md#6c5--mensajes-de-conflicto-vencimiento-y-pérdida-de-conexión) **Pendiente:** comprobar en el navegador el texto que la interfaz muestra para conflicto, pago rechazado y vencimiento.
 
 ## 7. Integración real (hito M5, carril `@integ`)
 
 Empieza cuando M4 y F5 están en `develop`.
 
-- [ ] **[I]** `@integ` `M5` Dejar el backend real como configuración por defecto del frontend. La configuración `fake` queda solo como opción de desarrollo o se elimina.
-- [ ] **[V]** `@integ` `M5` Ejecutar `docker compose up --build` sin `.env` y comprobar `GET /api/health` con consulta real a la base. Evidencia: _(comando y salida)_
-- [ ] **[V]** `@integ` `M5` Recorrer el flujo completo con el stack real: búsqueda, mapa, bloqueo, confirmación y boleto. Evidencia: _(captura o test e2e)_
-- [ ] **[V]** `@integ` `M5` Reproducir la demostración del vuelo de seis asientos: agotarlo en una pestaña y ver «Agotado» en otra sin recargar. Evidencia: _(captura)_
+- [x] **[I]** `@integ` `M5` Dejar el backend real como configuración por defecto del frontend. La configuración `fake` queda solo como opción de desarrollo o se elimina. Evidencia: el commit `3f409a3` retiró el perfil `fake` y `frontend/angular.json` ya no lo menciona; el stack de la evidencia usa solo el backend real.
+- [x] **[V]** `@integ` `M5` Ejecutar `docker compose up --build` sin `.env` y comprobar `GET /api/health` con consulta real a la base. Evidencia (2026-11-19): `db`, `migrate`, `api` y `web` sanos y `GET /api/health` → `200 {"status":"ok"}`. [Registro](evidence/README.md#72--docker-compose-up-sin-env-y-salud-con-la-base)
+- [x] **[V]** `@integ` `M5` Recorrer el flujo completo con el stack real: búsqueda, mapa, bloqueo, confirmación y boleto. Evidencia (2026-11-19, por HTTP): búsqueda `200`, bloqueo `201`, confirmación `201` (código `DKQMKY`) y consulta del boleto `200`. La interfaz con el backend real está en [F2–F5](handoff/frontend.md#f2f5--capacidades-reales--2026-11-19). [Registro](evidence/README.md#73--flujo-completo-con-el-stack-real)
+- [x] **[V]** `@integ` `M5` Reproducir la demostración del vuelo de seis asientos: agotarlo en una pestaña y ver «Agotado» en otra sin recargar. Evidencia (2026-11-19): seis confirmaciones en `AP105` (`soldOut: true`, versión 2) y el listado abierto pasó a «Agotado» sin recargar. [Registro](evidence/README.md#74--demostración-de-ap105-vuelo-de-seis-asientos)
 
 ## 8. Calidad y entrega
 
@@ -264,7 +264,7 @@ Empieza cuando M4 y F5 están en `develop`.
 - [x] **[V]** `@front` `F5` Revisar estados de carga, vacío y error, así como la adaptación a pantallas pequeñas (desde 360 px). Verificado con las pruebas del frontend y la revisión en Chrome a 360 y 1366 px. [Registro F5](handoff/frontend.md#f5--2026-11-19).
 - [x] **[I]** `@integ` `M5` Disponer de un comando o pipeline único que compile y ejecute todas las pruebas, incluidas las de concurrencia. Script `verify` en la raíz (`package.json`): `npm run build && npm run lint && npm run format:check && npm test`; añadido en el commit `33c81bf`. Falta ejecutarlo (tarea siguiente).
 - [ ] **[V]** `@integ` `M5` Ejecutar ese comando y confirmar que pasa.
-- [ ] **[V]** `@integ` `M5` Contrastar `docs/architecture.md` con el comportamiento realmente implementado y corregir las diferencias, usando los cambios que cada carril anotó en su seguimiento.
+- [ ] **[V]** `@integ` `M5` Contrastar `docs/architecture.md` con el comportamiento realmente implementado y corregir las diferencias, usando los cambios que cada carril anotó en su seguimiento. Avance: arch §5 y §4.4 y la convención `header.<nombre>` del contrato se corrigieron en `9c66e48`; falta repasar el resto de secciones.
 - [ ] **[V]** `@integ` `M5` Contrastar la lista de requisitos de la sección 0 con lo entregado: cada requisito cubierto, con su evidencia, o declarado como limitación.
 - [ ] **[D]** `@integ` `M5` Completar `docs/ia.md` con el uso de herramientas, prompts, correcciones y aportes. Cada carril ya alimenta su subsección; el integrador la unifica y cierra.
 - [ ] **[D]** `@integ` `M5` Verificar que el README explique cómo instalar, ejecutar y probar el proyecto.
