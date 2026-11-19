@@ -1,0 +1,238 @@
+<div class="search-page">
+  <div class="page-heading">
+    <h1>
+      {{ flightActions() ? 'Administración' : statusView ? 'Estado de vuelos' : 'Buscar vuelos' }}
+    </h1>
+    <div class="connection" role="status">
+      @switch (connection().status) {
+        @case ('connected') {
+          <span class="connection__label connection__label--live">En vivo</span>
+          @if (restored()) {
+            <span class="connection__detail">Conexión restablecida</span>
+          }
+        }
+        @case ('offline') {
+          <span class="connection__label connection__label--offline">Sin conexión</span>
+        }
+        @case ('error') {
+          <span class="connection__label connection__label--offline">Error de conexión</span>
+        }
+        @default {
+          <span class="connection__label">Conectando…</span>
+        }
+      }
+    </div>
+  </div>
+  @if (statusView) {
+    <a class="admin-access-link" routerLink="/admin">Administración</a>
+  }
+  <ng-content select="[flight-search-tools]" />
+
+  <form class="search-form" aria-label="Filtros de vuelos" (submit)="submit($event)" novalidate>
+    <div class="fields">
+      <div class="field">
+        <label for="origin">Origen · Salida</label>
+        <select
+          #origin
+          id="origin"
+          name="origin"
+          required
+          aria-describedby="origin-airport"
+          (change)="updateAirport('origin', origin.value)"
+        >
+          @for (code of airportCodes; track code) {
+            <option [value]="code" [selected]="code === filters().origin">
+              {{ airports[code].city }} ({{ code }})
+            </option>
+          }
+        </select>
+        <small id="origin-airport">{{ airports[filters().origin].airport }}</small>
+      </div>
+
+      <button
+        class="swap"
+        type="button"
+        aria-label="Intercambiar origen y destino"
+        (click)="swapAirports()"
+      >
+        <span aria-hidden="true">⇄</span>
+      </button>
+
+      <div class="field">
+        <label for="destination">Destino · Llegada</label>
+        <select
+          #destination
+          id="destination"
+          name="destination"
+          required
+          [attr.aria-invalid]="sameAirport() || null"
+          [attr.aria-describedby]="sameAirport() ? 'destination-error' : 'destination-airport'"
+          (change)="updateAirport('destination', destination.value)"
+        >
+          @for (code of airportCodes; track code) {
+            <option [value]="code" [selected]="code === filters().destination">
+              {{ airports[code].city }} ({{ code }})
+            </option>
+          }
+        </select>
+        @if (sameAirport()) {
+          <small class="field-error" id="destination-error"
+            >Elige un destino distinto del origen.</small
+          >
+        } @else {
+          <small id="destination-airport">{{ airports[filters().destination].airport }}</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="flight-date">Fecha de salida · UTC</label>
+        <input
+          #dateInput
+          id="flight-date"
+          name="date"
+          type="date"
+          required
+          [value]="filters().date"
+          [attr.aria-invalid]="dateInvalid() || null"
+          [attr.aria-describedby]="dateInvalid() ? 'date-error' : null"
+          (input)="changeDate(dateInput.value)"
+        />
+        @if (dateInvalid()) {
+          <small class="field-error" id="date-error">Introduce una fecha válida.</small>
+        }
+      </div>
+
+      <button class="primary search-button" type="submit">
+        @if (searching()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Buscando…
+        } @else {
+          <span class="magnifier" aria-hidden="true"></span>
+          Buscar vuelos
+        }
+      </button>
+    </div>
+
+    <div class="days" role="group" aria-label="Días cercanos a la fecha de salida en UTC">
+      @for (day of days(); track day.date) {
+        <button
+          class="day"
+          type="button"
+          [attr.aria-pressed]="day.date === filters().date"
+          [attr.aria-describedby]="'day-' + day.date"
+          (click)="selectDay(day.date)"
+        >
+          <span class="day__weekday">{{ day.weekday }}</span>
+          <span class="day__date">{{ day.short }}</span>
+          <span [id]="'day-' + day.date" hidden>{{ day.label }} UTC</span>
+        </button>
+      }
+    </div>
+  </form>
+
+  @let link = connection();
+  @let request = search();
+  @let flights = results();
+  @let query = submitted();
+  <section class="results" aria-labelledby="results-title">
+    <div class="results-heading">
+      <div>
+        <h2 id="results-title">
+          {{ airports[query.origin].city }} a {{ airports[query.destination].city }}
+        </h2>
+        <p>{{ dateLabel(query.date) }} · UTC</p>
+      </div>
+      <span class="result-count" role="status">
+        @if (request.status === 'ready' || flights.length) {
+          {{ flights.length }} {{ flights.length === 1 ? 'vuelo' : 'vuelos' }}
+        } @else if (searching()) {
+          Buscando vuelos…
+        }
+      </span>
+    </div>
+    @if (link.status === 'offline' || link.status === 'error' || request.status === 'error') {
+      <div class="notice notice--error">
+        <p role="alert">
+          @if (link.status === 'offline') {
+            Se perdió la conexión. Puedes volver a intentar la búsqueda.
+          } @else if (link.status === 'error') {
+            {{ link.error.message }}
+          } @else if (request.status === 'error') {
+            {{ request.error.message }}
+          }
+        </p>
+        <button class="retry" type="button" (click)="retry()">Reintentar</button>
+      </div>
+    }
+    @if (flights.length) {
+      <ul class="flight-list" role="list">
+        @for (flight of flights; track flight.id) {
+          <li class="flight" [attr.tabindex]="flightActions() ? '-1' : null">
+            <div class="flight__number">
+              <span class="eyebrow">Vuelo</span>
+              <strong>{{ flight.flightNumber }}</strong>
+            </div>
+            <div class="itinerary">
+              <div class="itinerary__point">
+                <span class="eyebrow">Salida</span>
+                <time [attr.datetime]="flight.departureAt">{{ time(flight.departureAt) }}</time>
+                <span>{{ flight.origin }} <span class="utc">UTC</span></span>
+              </div>
+              <span class="itinerary__line" aria-hidden="true"></span>
+              <div class="itinerary__point">
+                <span class="eyebrow">Llegada</span>
+                <time [attr.datetime]="flight.arrivalAt">{{ time(flight.arrivalAt) }}</time>
+                <span>
+                  {{ flight.destination }} <span class="utc">UTC</span>
+                  @if (flight.arrivalAt.slice(0, 10) !== flight.departureAt.slice(0, 10)) {
+                    <small class="arrival-day">Día siguiente</small>
+                  }
+                </span>
+              </div>
+            </div>
+            <div class="flight__statuses">
+              <span class="flight-status" [attr.data-status]="flight.status">
+                {{ flightStatuses[flight.status] }}
+              </span>
+              @if (flight.soldOut) {
+                <span class="flight-status" data-status="SOLD_OUT">Agotado</span>
+              }
+            </div>
+            <div class="flight__fare">
+              <span class="eyebrow">Tarifa</span>
+              <strong>{{ fare(flight.fareCop) }}</strong>
+            </div>
+            <div class="flight__actions">
+              <a [routerLink]="['/vuelos', flight.id, 'ocupacion']"
+                >Ver ocupación<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span></a
+              >
+              @if (flightActions(); as actions) {
+                <ng-container
+                  [ngTemplateOutlet]="actions"
+                  [ngTemplateOutletContext]="{ $implicit: flight }"
+                />
+              } @else if (!statusView && flight.status !== 'CANCELLED' && !flight.soldOut) {
+                <a class="flight__choose" [routerLink]="['/vuelos', flight.id, 'asientos']"
+                  >Elegir asiento<span class="sr-only">
+                    en el vuelo {{ flight.flightNumber }}</span
+                  ></a
+                >
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    } @else if (searching()) {
+      <div class="skeletons" aria-hidden="true">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    } @else if (request.status === 'ready' && link.status === 'connected') {
+      <div class="notice notice--empty">
+        <h3>No hay vuelos para esta búsqueda</h3>
+        <p>Prueba otra fecha o cambia el origen y el destino.</p>
+      </div>
+    }
+  </section>
+</div>

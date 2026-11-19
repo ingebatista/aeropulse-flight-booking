@@ -1,0 +1,28 @@
+<section class="access" aria-labelledby="access-title">
+  <h1 id="access-title">Administración</h1>
+  @if (error()) {
+    <p class="booking-alert" role="alert">{{ error() }}</p>
+  }
+  <form (submit)="enter($event, tokenField)" novalidate>
+    <div class="booking-field">
+      <label for="admin-token">Token de administración</label>
+      <input
+        #tokenField
+        id="admin-token"
+        type="password"
+        autocomplete="off"
+        required
+        [attr.aria-invalid]="invalid() ? 'true' : null"
+        [attr.aria-describedby]="invalid() ? 'admin-token-error' : null"
+        (input)="invalid.set(false)"
+      />
+      @if (invalid()) {
+        <small id="admin-token-error">Introduce un token sin espacios.</small>
+      }
+    </div>
+    <div class="access-actions">
+      <button type="submit" class="booking-primary">Entrar</button>
+      <a routerLink="/estado-de-vuelos">Volver a estado de vuelos</a>
+    </div>
+  </form>
+</section>

@@ -1,0 +1,46 @@
+@let booking = ticket();
+<article class="ticket" aria-labelledby="ticket-title">
+  <div class="ticket-heading">
+    <h2 id="ticket-title" #heading tabindex="-1">Reserva confirmada</h2>
+    <p>
+      Código de reserva <strong class="booking-code">{{ booking.code }}</strong>
+    </p>
+  </div>
+  <dl>
+    <div>
+      <dt>Vuelo</dt>
+      <dd>
+        {{ booking.flight.flightNumber }} · {{ booking.flight.origin }} →
+        {{ booking.flight.destination }}
+      </dd>
+    </div>
+    <div>
+      <dt>Pasajero</dt>
+      <dd>{{ booking.passenger.firstName }} {{ booking.passenger.lastName }}</dd>
+    </div>
+    <div>
+      <dt>Salida</dt>
+      <dd>
+        <time [attr.datetime]="booking.flight.departureAt"
+          >{{ utc(booking.flight.departureAt) }} UTC</time
+        >
+      </dd>
+    </div>
+    <div>
+      <dt>Llegada</dt>
+      <dd>
+        <time [attr.datetime]="booking.flight.arrivalAt"
+          >{{ utc(booking.flight.arrivalAt) }} UTC</time
+        >
+      </dd>
+    </div>
+    <div>
+      <dt>Asiento</dt>
+      <dd>{{ booking.seatCode }}</dd>
+    </div>
+    <div class="amount">
+      <dt>Importe</dt>
+      <dd>COP {{ money.format(booking.amountCop) }}</dd>
+    </div>
+  </dl>
+</article>

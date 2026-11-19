@@ -1,4 +1,35 @@
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" routerLink="/">
+      <span class="brand__mark" aria-hidden="true">✈</span>
+      AeroPulse
+    </a>
+    <nav aria-label="Principal">
+      <a
+        class="site-header__link"
+        routerLink="/"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page"
+        ><span class="site-header__icon" aria-hidden="true">⌕</span>Buscar vuelos</a
+      >
+      <a
+        class="site-header__link"
+        routerLink="/boletos"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        ><span class="site-header__icon" aria-hidden="true">▤</span>Consultar boleto</a
+      >
+      <a
+        class="site-header__link"
+        routerLink="/estado-de-vuelos"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        ><span class="site-header__icon" aria-hidden="true">◉</span>Estado de vuelos</a
+      >
+    </nav>
+  </div>
+</header>
 <main>
-  <h1>AeroPulse</h1>
   <router-outlet />
 </main>
