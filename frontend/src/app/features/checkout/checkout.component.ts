@@ -50,6 +50,12 @@ export class CheckoutComponent {
   protected readonly clock = useHoldCountdown(this.inventory);
   protected readonly testCards = TEST_CARDS;
   protected readonly money = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+  private readonly schedule = new Intl.DateTimeFormat('es-CO', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    hourCycle: 'h23',
+    timeZone: 'UTC',
+  });
   protected readonly passenger = signal<Passenger>({ firstName: '', lastName: '' });
   protected readonly errors = signal<Partial<Record<keyof Passenger | 'card', string>>>({});
   protected readonly error = signal('');
@@ -91,6 +97,10 @@ export class CheckoutComponent {
     card.value = value;
     this.setCardError();
     card.focus();
+  }
+
+  protected utc(value: string): string {
+    return this.schedule.format(new Date(value));
   }
 
   protected submit(

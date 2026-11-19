@@ -26,6 +26,20 @@ body {
     sans-serif;
 }
 
+@media print {
+  body:has(app-ticket) {
+    background: var(--color-surface);
+  }
+
+  body:has(app-ticket) .site-header {
+    display: none;
+  }
+
+  body:has(app-ticket) main {
+    padding: 0;
+  }
+}
+
 button,
 input,
 select {

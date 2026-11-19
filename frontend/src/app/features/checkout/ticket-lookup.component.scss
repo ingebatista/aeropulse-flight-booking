@@ -24,3 +24,15 @@ h1 {
 button {
   justify-self: start;
 }
+
+@media print {
+  .lookup:has(app-ticket) {
+    display: block;
+    width: auto;
+    margin: 0;
+  }
+
+  .lookup:has(app-ticket) form {
+    display: none;
+  }
+}

@@ -4,7 +4,8 @@
   padding-block: 28px 48px;
 }
 
-.detail-page:has(.detail-nav__occupancy.selected) {
+.detail-page:has(.detail-nav__occupancy.selected),
+.detail-page:has(app-checkout) {
   width: min(var(--content-width), calc(100% - 32px));
 }
 
@@ -101,4 +102,15 @@
   background: var(--color-surface);
   color: var(--color-primary-hover);
   font-weight: 700;
+}
+
+@media print {
+  .detail-page:has(app-ticket) {
+    width: auto;
+    padding: 0;
+  }
+
+  .detail-page:has(app-ticket) > :not(app-checkout) {
+    display: none;
+  }
 }

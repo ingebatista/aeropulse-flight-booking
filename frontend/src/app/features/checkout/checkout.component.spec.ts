@@ -155,6 +155,9 @@ describe('Confirmación y consulta de reservas', () => {
     harness.detectChanges();
     expect(page().querySelector('.booking-code')?.textContent).toBe(ticket.code);
     expect(page().textContent).toContain('COP 199.000');
+    expect(page().querySelector('.ticket-details time')?.getAttribute('datetime')).toBe(
+      ticket.createdAt,
+    );
     expect(page().querySelector('#card')).toBeNull();
   });
 
@@ -262,5 +265,34 @@ describe('Confirmación y consulta de reservas', () => {
     http.expectOne(`/api/bookings/${ticket.code}?lastName=G%C3%B3mez`).flush(ticket);
     harness.detectChanges();
     expect(page().querySelector('.booking-code')?.textContent).toBe(ticket.code);
+  });
+
+  it('copia solo el código, ofrece copia manual si falla e imprime el boleto', async () => {
+    const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error());
+    const navigatorWithClipboard: Navigator = Object.create(window.navigator);
+    Object.defineProperty(navigatorWithClipboard, 'clipboard', { value: { writeText } });
+    vi.spyOn(window, 'navigator', 'get').mockReturnValue(navigatorWithClipboard);
+    const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+
+    await harness.navigateByUrl('/boletos');
+    fill('#booking-code', ticket.code);
+    fill('#booking-name', ticket.passenger.lastName);
+    submit();
+    http.expectOne(`/api/bookings/${ticket.code}?lastName=G%C3%B3mez`).flush(ticket);
+    harness.detectChanges();
+
+    const copy = page().querySelector<HTMLButtonElement>('.code-actions button')!;
+    copy.click();
+    await Promise.resolve();
+    harness.detectChanges();
+    expect(writeText).toHaveBeenCalledWith(ticket.code);
+    expect(page().querySelector('.copy-feedback')?.textContent).toBe('Código copiado.');
+
+    copy.click();
+    await Promise.resolve();
+    harness.detectChanges();
+    expect(page().querySelector('.copy-feedback')?.textContent).toContain('manualmente');
+    page().querySelector<HTMLButtonElement>('.ticket-actions button')!.click();
+    expect(print).toHaveBeenCalledOnce();
   });
 });
