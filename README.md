@@ -15,9 +15,9 @@ Con la aplicación levantada (`docker compose up --build`, ver [Ejecutar con Doc
 | --- | --- |
 | Aplicación (búsqueda de vuelos) | `http://localhost:8080` (en desarrollo local, `http://localhost:4200`) |
 | **Vista de administración** | `http://localhost:8080/admin/acceso` |
-| **Token de administración** | `AeroPlus-admin-dev` |
+| **Token de administración local** | `aeropulse-admin-dev` |
 
-> **¿Buscas el acceso de administrador?** Entra en `/admin/acceso` y escribe el token `AeroPlus-admin-dev`. Es el valor por defecto en desarrollo y en Compose, y se puede cambiar con la variable `ADMIN_TOKEN` (ver [Variables opcionales](#variables-opcionales)). Es la única vista protegida; permite marcar un vuelo como retrasado o cancelado, y el cambio llega a todas las pestañas en tiempo real. El resto de las vistas son públicas. El detalle está en [Accesos y rutas de la interfaz](#accesos-y-rutas-de-la-interfaz).
+En `/admin/acceso`, escribe `aeropulse-admin-dev` en minúsculas o usa el valor de `ADMIN_TOKEN` si lo configuraste. Selecciona el vuelo que quieres retrasar o cancelar. El listado público refleja el cambio en tiempo real. Consulta [Accesos y rutas de la interfaz](#accesos-y-rutas-de-la-interfaz).
 
 ## Cobertura del enunciado
 
@@ -146,7 +146,7 @@ Si prefieres dejar la terminal libre, `docker compose up -d --build --wait --wai
 5. **Consultar el boleto (HU3).** En `Consultar boleto`, con el código de reserva y el apellido.
 6. **Ver el vencimiento (HU2 y HU4).** El bloqueo dura 300 segundos. Para verlo en 30, añade `HOLD_TTL_SECONDS=30` a un archivo `.env` y vuelve a ejecutar `docker compose up -d`. En el mapa, observa el aviso al vencer y cómo el asiento vuelve a estar disponible en la otra pestaña.
 7. **Ver «Agotado» (HU1).** El vuelo `AP105` (`BOG → MDE`, 22:30 UTC) tiene seis asientos. Reserva los que queden disponibles en una pestaña y observa cómo el listado abierto en la otra pasa a «Agotado». Si esa salida ya pasó, elige el siguiente día UTC con datos.
-8. **Administración (HU1).** En `/admin/acceso` entra con el token `AeroPlus-admin-dev` y marca otro vuelo como retrasado o cancelado. El cambio llega a las pestañas de búsqueda.
+8. **Administración (HU1).** En `/admin/acceso` entra con el token `aeropulse-admin-dev` y marca otro vuelo como retrasado o cancelado. El cambio llega a las pestañas de búsqueda.
 
 Las horas de salida y de llegada se muestran en UTC.
 
@@ -165,7 +165,7 @@ Con Compose, todas las rutas cuelgan de `http://localhost:8080`. En desarrollo l
 | **Administración** | `/admin/acceso` | **Sí: token de administración** |
 
 - **Dashboard de ocupación.** No tiene código. Abre un vuelo desde la búsqueda y entra a su pestaña «Ocupación»: muestra los asientos disponibles, bloqueados y reservados, y se actualiza en tiempo real.
-- **Administración (cambiar el estado de un vuelo).** Es la única vista protegida. En `/admin/acceso` escribe el token `AeroPlus-admin-dev`, que es el valor por defecto en desarrollo y en Compose. Se cambia con la variable `ADMIN_TOKEN` en un archivo `.env`; después, ejecuta `docker compose up -d` para aplicarlo. El token se conserva solo en memoria: al recargar la página hay que volver a introducirlo.
+- **Administración (cambiar el estado de un vuelo).** Es la única vista protegida. En `/admin/acceso` escribe el token `aeropulse-admin-dev`, que es el valor por defecto en desarrollo y en Compose. Se cambia con la variable `ADMIN_TOKEN` en un archivo `.env`; después, ejecuta `docker compose up -d` para aplicarlo. El token se conserva solo en memoria: al recargar la página hay que volver a introducirlo.
 - **Código de reserva.** No es una credencial de acceso: es el boleto de 6 caracteres que se genera al confirmar una compra, y se usa junto con el apellido en `/boletos`.
 
 ### Variables opcionales
@@ -176,7 +176,7 @@ Todas tienen valor por defecto; la lista completa está en [.env.example](.env.e
 | --- | --- | --- |
 | `WEB_PORT` | `8080` | Puerto del frontend en el host |
 | `HOLD_TTL_SECONDS` | `300` | Duración del bloqueo de un asiento |
-| `ADMIN_TOKEN` | `AeroPlus-admin-dev` | Token del área de administración |
+| `ADMIN_TOKEN` | `aeropulse-admin-dev` | Token del área de administración |
 | `RATE_LIMIT_GLOBAL`, `RATE_LIMIT_HOLD`, `RATE_LIMIT_CONFIRM`, `RATE_LIMIT_ADMIN` | 120, 30, 10 y 30 | Solicitudes por minuto, por ruta y por IP |
 
 Con `APP_NODE_ENV=production` la API se niega a arrancar si `ADMIN_TOKEN` es el valor de desarrollo.

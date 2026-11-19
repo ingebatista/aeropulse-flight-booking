@@ -119,11 +119,20 @@ describe('Administración y estado de vuelos', () => {
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/admin/acceso');
     expect(TestBed.inject(AdminSession).token).toBe('');
-    expect(page().querySelector('[role="alert"]')?.textContent).toContain('no está autorizado');
+    expect(page().querySelector('[role="alert"]')?.textContent).toContain(
+      `rechazó el token de administración al actualizar el vuelo ${flight.flightNumber}`,
+    );
   });
 
   it('funde el retraso y el evento duplicado por versión, y confirma la cancelación de forma explícita', async () => {
-    await openAdmin();
+    const other: Flight = {
+      ...flight,
+      id: '2cf76df7-e693-40ab-9ac1-0dd3e664501c',
+      flightNumber: 'AP107',
+    };
+    await openAdmin([other, flight]);
+    action(`#admin-flight-${flight.id}`).click();
+    harness.detectChanges();
     expect(page().querySelector('.search-page--public')).toBeNull();
     expect(page().querySelector('h1')?.textContent?.trim()).toBe('Administración');
     const delay = action('.admin-actions button');
@@ -139,6 +148,7 @@ describe('Administración y estado de vuelos', () => {
     expect(page().querySelector('[data-status="DELAYED"]')).not.toBeNull();
     expect(page().querySelector('[data-status="SOLD_OUT"]')).not.toBeNull();
     expect(page().querySelectorAll('.admin-actions button')).toHaveLength(1);
+    expect(TestBed.inject(Router).url).toBe('/admin');
 
     const dialog = page().querySelector('dialog')!;
     // jsdom permite probar el flujo de cierre, pero el navegador aplica el foco nativo.
@@ -161,13 +171,18 @@ describe('Administración y estado de vuelos', () => {
     expect(dialog.textContent).toContain(flight.flightNumber);
     http.expectNone(patchUrl);
     action('.confirm-danger').click();
-    const cancellation = http.expectOne(patchUrl);
+    const cancellation = http.expectOne({ url: patchUrl, method: 'PATCH' });
+    expect(cancellation.request.headers.get('Authorization')).toBe('Bearer token-de-test');
     expect(cancellation.request.body).toEqual({ status: 'CANCELLED' });
     cancellation.flush({ ...delayed, status: 'CANCELLED', version: 3 });
     harness.detectChanges();
     expect(page().querySelector('[data-status="CANCELLED"]')).not.toBeNull();
     expect(page().querySelector('.admin-actions button')).toBeNull();
-    expect(document.activeElement).toBe(page().querySelector('.admin-flight-option'));
+    expect(document.activeElement).toBe(action(`#admin-flight-${flight.id}`));
+    expect(
+      action(`#admin-flight-${other.id}`).querySelector('[data-status="SCHEDULED"]'),
+    ).not.toBeNull();
+    expect(TestBed.inject(Router).url).toBe('/admin');
   });
 
   it('selecciona el primer vuelo y conserva la selección por ID al recibir cambios', async () => {

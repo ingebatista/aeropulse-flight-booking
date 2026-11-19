@@ -121,7 +121,7 @@ export class AdminFlightsComponent {
         },
         error: (error: ApiError) => {
           this.pending.set(false);
-          this.handleError(error);
+          this.handleError(error, current.flightNumber);
         },
       });
   }
@@ -134,9 +134,11 @@ export class AdminFlightsComponent {
     (target ?? this.document.getElementById('results-title'))?.focus();
   }
 
-  private handleError(error: ApiError): void {
-    if (error.code === 'UNAUTHORIZED') {
-      this.logout(error.message);
+  private handleError(error: ApiError, flightNumber: string): void {
+    if (error.status === 401) {
+      this.logout(
+        `El servidor rechazó el token de administración al actualizar el vuelo ${flightNumber}. Verifica el token y vuelve a acceder.`,
+      );
       return;
     }
 
