@@ -29,7 +29,7 @@ docker compose up --build
 
 La aplicación queda en `http://localhost:8080` y la salud de la API en `http://localhost:8080/api/health`. Nginx sirve Angular y reenvía `/api/` y `/ws/` a NestJS. Compose inicia PostgreSQL 17, ejecuta `migrate` con el rol propietario y luego arranca la API con el rol `app`.
 
-`.env.example` lista las variables opcionales. El modo Compose usa credenciales locales por defecto y publica solo el frontend en la interfaz local.
+`.env.example` lista las variables opcionales. Compose configura el modo de demostración local y publica solo el frontend en la interfaz local. El token de desarrollo previsto para la administración es `aeropulse-admin-dev`. Para ensayar el vencimiento en 30 segundos, se puede definir `HOLD_TTL_SECONDS=30`.
 
 ## Desarrollo local
 

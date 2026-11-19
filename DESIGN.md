@@ -1,95 +1,116 @@
 ---
-version: alpha
+version: 1.1.0
 name: AeroPulse
-description: Sistema visual para la reserva de vuelos y la consulta de ocupación en tiempo real en Colombia.
+description: Sistema visual aeronáutico para la búsqueda, reserva de vuelos y consulta de ocupación en tiempo real en Colombia.
 colors:
-  primary: "#005A70"
-  on-primary: "#FFFFFF"
-  background: "#F3F6F8"
-  surface: "#FFFFFF"
-  on-surface: "#142D42"
-  on-surface-variant: "#465A68"
-  outline: "#697E88"
-  outline-variant: "#CFD9DE"
+  primary: "#0474C4"              # Azul aviación vibrante (CTA principal, enlaces activos, foco)
+  primary-hover: "#06457F"        # Azul nocturno profundo (hover y estados presionados)
+  header-bg: "#262B40"            # Azul marino profundo (anclaje de cabecera principal y bottom bar)
+  text-heading: "#262B40"         # Títulos de alta jerarquía (H1, H2) sobre superficies claras
+  text-body: "#2C444C"            # Gris pizarra oscuro neutro (textos de lectura, microcopy, ayuda UTC)
+  text-muted: "#5379AE"           # Azul pizarra intermedio (subtítulos, etiquetas secundarias, iconos neutros)
+  accent-soft: "#A8C4EC"          # Azul cielo sutil (fondos de badges, tintes de iconos al 10-15%, bordes suaves)
+  surface: "#FFFFFF"              # Blanco puro dominante (tarjetas de formularios, módulos interactivos)
+  background: "#F8FAFC"           # Gris neutro aireado (fondo global de la aplicación)
+  outline: "#E2E8F0"              # Gris neutro claro (bordes de contenedores e inputs)
+  outline-focus: "#0474C4"        # Borde de foco activo
+  status-live: "#10B981"          # Verde esmeralda (indicadores «EN VIVO», rutas y frecuencias activas)
+  error: "#DC2626"                # Rojo alerta (validaciones de formulario, errores de ruta o fecha)
+  error-bg: "#FEF2F2"             # Fondo suave para contenedores de error
   available: "#216344"
   held: "#795000"
   held-container: "#FFF2CF"
   booked: "#344E60"
   booked-container: "#E0E9EE"
-  error: "#A12D2D"
-  error-container: "#FBE9E8"
 typography:
-  headline:
-    fontFamily: system-ui
-    fontSize: 32px
-    fontWeight: 700
-    lineHeight: 1.2
-  title:
-    fontFamily: system-ui
-    fontSize: 24px
-    fontWeight: 600
-    lineHeight: 1.25
-  body:
-    fontFamily: system-ui
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 1.5
-  label:
-    fontFamily: system-ui
-    fontSize: 14px
-    fontWeight: 600
-    lineHeight: 1.4
+  fontFamily: "'Roboto', sans-serif"
+  weights:
+    regular: 400
+    medium: 500
+    bold: 700
+    black: 900
+  scale:
+    h1:
+      fontSize: "30px"
+      fontWeight: 700
+      lineHeight: 1.2
+    h2:
+      fontSize: "22px"
+      fontWeight: 700
+      lineHeight: 1.3
+    body:
+      fontSize: "15px"
+      fontWeight: 400
+      lineHeight: 1.5
+    label:
+      fontSize: "12px"
+      fontWeight: 700
+      lineHeight: 1.4
+      textTransform: "uppercase"
+      letterSpacing: "0.05em"
+    helper:
+      fontSize: "13px"
+      fontWeight: 400
+      lineHeight: 1.4
 spacing:
-  sm: 8px
-  md: 16px
-  lg: 24px
-  xl: 32px
+  xs: "4px"
+  sm: "8px"
+  md: "16px"
+  lg: "24px"
+  xl: "32px"
 rounded:
-  md: 8px
+  sm: "6px"
+  md: "8px"
+  lg: "12px"
+  full: "9999px"
 components:
   primary-button:
     backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
+    textColor: "{colors.surface}"
     rounded: "{rounded.md}"
   flight-card:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.on-surface}"
-    rounded: "{rounded.md}"
+    textColor: "{colors.text-heading}"
+    rounded: "{rounded.lg}"
 ---
 
-# AeroPulse
+# AeroPulse Aviation Suite
 
-## Identidad
+## Identidad y tipografía
 
-La referencia visual es un tablero de salidas. Al comparar vuelos, el pasajero debe poder recorrer una misma columna con la mirada y encontrar la hora, la tarifa y el estado de cada opción. Al elegir un asiento, la prioridad pasa a su ubicación y al tiempo que queda para confirmar. Usa «AeroPulse» como marca tipográfica en la cabecera.
+La interfaz toma como referencia un tablero de operaciones aeronáuticas. Aplica la proporción 70/20/10. Dedica alrededor del 70 % a fondos claros y tarjetas blancas con borde fino y sombra suave, el 20 % a cabecera, títulos y texto, y el 10 % al azul aviación de las acciones. En los resultados, alinea horas y precios para comparar vuelos de un vistazo. En la compra, da prioridad al asiento, al plazo y al total.
 
-## Color y tipografía
+Usa Roboto con H1 de 30 px, H2 de 22 px, cuerpo de 15 px y ayudas de 13 px. Las etiquetas de campo llevan 12 px, peso 700, mayúsculas y espaciado de 0,05 em. Aplica `font-variant-numeric: tabular-nums` a fechas, horas, frecuencias, tarifas, contadores y cuenta regresiva. Escribe en español de Colombia. Presenta «Bogotá (BOG)», «COP 240.000» y «04:12». La fecha de búsqueda y los itinerarios se expresan en UTC. Si se incluye el reloj de Colombia en la cabecera, rotúlalo, por ejemplo, «14:32 UTC-5».
 
-Usa el azul noche de `on-surface` como fondo de cabecera con texto blanco y como tinta para títulos sobre superficies claras. Reserva el azul petróleo de `primary` para la acción principal, la navegación activa y el bloqueo propio. Dibuja los límites de controles con `outline` y los separadores de filas con `outline-variant`.
+## Cabecera y navegación
 
-Usa cifras tabulares para horas, importes, contadores y cuenta regresiva. Escribe en español de Colombia. Conserva los códigos de aeropuerto junto a las ciudades, por ejemplo «Bogotá (BOG) → Medellín (MDE)». Expresa las horas como «20:00 UTC», la tarifa como «COP 240.000» y el tiempo restante como «04:12».
+Sobre la cabecera marina coloca un ala estilizada blanca con acento azul junto a «AeroPulse». La píldora «EN VIVO» combina texto claro y punto esmeralda con pulso discreto cuando los datos están sincronizados. Al perder la conexión, sustituye el indicador por «Sin conexión». Muestra «Conexión restablecida» al recuperar los datos y conserva el último inventario visible durante la espera.
 
-## Composición
+Desde 1024 px centra el contenido en un ancho máximo de 1120 px. La cabecera horizontal incluye «Buscar vuelos», «Consultar boleto», «Estado de vuelos» y un icono de perfil a la derecha como referencia visual. «Estado de vuelos» conduce a la lista de vuelos y desde allí a «Ver ocupación» para un vuelo concreto. El perfil funciona como identificador visual. En el panel protegido identifica el contexto como «Administración».
 
-Centra el contenido en un ancho máximo de 1120 px. Usa tarjetas blancas de radio 8 px sobre fondo gris azulado. En búsqueda, alinea los filtros sobre la lista. En el mapa y en la confirmación, usa dos columnas para mantener el resumen del asiento cerca de la acción. En el boleto, centra una sola tarjeta de hasta 680 px y da al código de reserva la mayor jerarquía.
+A 360 px deja márgenes de 16 px. Traslada los tres destinos de navegación a una barra inferior marina fija con iconos, etiquetas y áreas de al menos 48 px de alto. Indica el destino activo con texto y una marca visible. Reserva espacio bajo la última acción para la barra y el área segura del dispositivo.
 
-A 360 px, deja 16 px de margen a cada lado. Apila filtros y acciones, convierte las filas de vuelo en tarjetas y conserva la cabina completa con su pasillo. En el pago móvil, presenta el asiento y el tiempo restante antes del formulario. Mantén las áreas táctiles en al menos 44 × 44 px.
+## Búsqueda y resultados
 
-## Componentes y estados
+En escritorio ordena la tarjeta de búsqueda en una fila con origen, intercambio, destino, fecha y acción. En móvil apila los campos y centra el botón circular de intercambio entre los dos selectores. Usa «ORIGEN · SALIDA» y «DESTINO · LLEGADA» como etiquetas persistentes. Debajo de la ciudad y el código IATA muestra el nombre del aeropuerto, por ejemplo «Aeropuerto El Dorado». El botón «Intercambiar origen y destino» permuta las dos selecciones y conserva la fecha.
 
-| Elemento | Tratamiento |
+Presenta la fecha con icono de calendario y una tira de días adyacentes. Para «19 nov 2026», muestra 17, 18, 19, 20 y 21, destaca el 19 y señala qué días se pueden consultar. Al elegir otro día, consulta la misma ruta para esa fecha. El botón «Buscar vuelos» usa icono y texto blancos, radio de 8 px, azul aviación en reposo y azul profundo al pasar el puntero o presionar. Su altura mínima es de 44 px en escritorio y 50 px en móvil. Los demás controles táctiles miden al menos 44 × 44 px.
+
+Dibuja cuatro estados del formulario. En reposo conserva las selecciones válidas. Si los aeropuertos coinciden, aplica borde rojo y fondo de error al campo de destino, con «Elige un destino distinto del origen». Si la fecha es inválida, pon la ayuda justo debajo. Mientras se consulta, el botón muestra un indicador de progreso y «Buscando…». Los esqueletos iniciales ocupan el espacio de las tarjetas de itinerario. Presenta los resultados como filas comparables en escritorio y tarjetas en móvil.
+
+## Asientos, ocupación y compra
+
+| Componente | Aplicación |
 | --- | --- |
-| Navegación | «Buscar vuelos» y «Consultar boleto» en el área pública. «Ver ocupación» aparece junto al vuelo. En el área protegida, coloca «Administración» junto a la marca. |
-| Asiento disponible | Superficie blanca, contorno verde `available` e icono de asiento hueco. Permite seleccionarlo y conserva una leyenda visible. |
-| Asiento bloqueado | Candado y texto ámbar `held` sobre `held-container`. Para el titular añade borde doble petróleo, etiqueta «Mi asiento» y tiempo restante. |
-| Asiento reservado | Asiento ocupado y texto `booked` sobre `booked-container`. Mantén legible el código de plaza al deshabilitar la selección. |
-| Estado del vuelo | Insignia con texto «Programado», «Retrasado» o «Cancelado». Para retraso usa reloj y ámbar. Para cancelación usa icono y rojo oscuro. Añade «Agotado» en una insignia independiente cuando se reserve la última plaza. |
-| Ocupación | Alinea «Disponibles», «Bloqueados» y «Reservados» con los mismos símbolos que el mapa. Actualiza en el mismo marco el asiento afectado y sus contadores. |
-| Formularios | Etiqueta persistente sobre cada campo y error específico debajo. En el pago identifica la simulación y conserva visibles el total y el vencimiento del bloqueo. |
-| Cancelación de vuelo | En el diálogo identifica el número de vuelo y la consecuencia. Distingue «Volver» de «Sí, cancelar vuelo». El foco inicial va a «Volver» y al cerrar regresa al control que abrió el diálogo. |
+| Mapa de cabina | Conserva pasillo, códigos y leyenda. Disponible lleva contorno verde y asiento hueco. Bloqueado lleva candado y ámbar. Reservado lleva asiento ocupado sobre gris azulado. Para el titular añade borde doble azul aviación, «Mi asiento» y el tiempo restante. |
+| Ocupación | Reutiliza los símbolos del mapa en «Disponibles», «Bloqueados» y «Reservados». Actualiza asiento y cifras a la vez. Usa esqueletos hasta recibir el inventario inicial. |
+| Estado de vuelo | Usa «Programado», «Retrasado» con reloj o «Cancelado» con icono de cancelación. «Agotado» es una segunda insignia que puede acompañar a cualquiera de las tres. |
+| Pago simulado | Coloca el formulario junto al resumen del vuelo en escritorio. En móvil muestra primero el asiento y el tiempo restante, y deja el total y «Confirmar reserva» al final, por encima de la barra inferior. Explica el rechazo junto al campo mientras el bloqueo siga vigente. |
+| Boleto y consulta | Centra el boleto en una tarjeta de hasta 680 px. Destaca el código seleccionable, seguido de ruta, horario, pasajero, asiento e importe. La consulta por código y apellido recupera el mismo diseño. |
+| Administración | Antes de cancelar, identifica el vuelo y la consecuencia. Pon el foco inicial en «Volver» y devuélvelo al control de origen al cerrar el diálogo. |
 
-## Actualizaciones y accesibilidad
+## Contraste y foco
 
-En primera carga usa esqueletos con la forma del contenido esperado. Ante una desconexión mantén el último mapa o resultado visible y presenta «Sin conexión». Al recuperar los datos muestra «Conexión restablecida». Conserva la posición de lectura y el foco de teclado durante las actualizaciones.
+Usa el azul pizarra secundario para iconos o texto grande. En etiquetas y ayudas pequeñas usa el color de cuerpo para alcanzar 4,5:1 sobre blanco y sobre el fondo global. En errores sobre rosa, usa rojo para icono y borde y el color de cuerpo para el mensaje. El verde esmeralda identifica actividad con un punto acompañado de texto. Los bordes claros separan tarjetas. Refuerza con un contorno de mayor contraste los controles cuya forma permita identificarlos.
 
-Combina color, icono y etiqueta. Usa un anillo de foco de 3 px con separación de 2 px, petróleo sobre superficies claras y blanco sobre la cabecera oscura. Para un lector de pantalla identifica cada plaza por código y estado, por ejemplo «2A, bloqueado, mi asiento». Anuncia el vencimiento una vez y conserva el contador visual en cifras tabulares. Mantén contraste de texto de al menos 4,5:1 y respeta la preferencia de movimiento reducido.
+En superficies claras usa foco azul aviación de 3 px con separación de 2 px. En las barras marinas añade un halo blanco para que el foco siga siendo visible. Conserva el foco y la posición de lectura al actualizar información en vivo. Anuncia el vencimiento del bloqueo una vez y respeta la preferencia de movimiento reducido al representar el pulso o la carga.

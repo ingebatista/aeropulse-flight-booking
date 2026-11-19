@@ -28,7 +28,7 @@ Cada regla se define en un solo lugar (secciones 1 a 4). En las secciones poster
 
 **Punteros.** Esta lista no repite el contenido de las decisiones; solo señala dónde están. `arch` = [architecture.md](architecture.md), `ctx` = `contexto-kata-reservas-vuelos.md` y `plan` = `analisis-arquitectura-kata.md`. Los dos últimos documentos no están en la carpeta del proyecto: si se copian a `docs/`, hay que actualizar estos punteros. Una nota **Pendiente:** explica por qué una tarea sigue abierta aunque el diseño ya la toque.
 
-**Estado del diseño (revisión del 2026-11-18).** Las secciones 0 a 4 tienen sus decisiones documentadas. La puerta de validación y las tareas de implementación y verificación siguen pendientes. El código es andamiaje: `packages/shared`, `libs/domain`, `libs/events`, las entidades y las carpetas de `features/` están vacíos.
+**Estado del diseño (revisión del 2026-11-18).** La puerta documental de M0 está cerrada para las secciones 4 y 6.2 de la kata. Existen contratos en `packages/shared`, configuración de los servicios, la ruta de salud y la entrada de Socket.IO. La preparación de los carriles, la implementación de las historias y su verificación se siguen en los hitos de abajo.
 
 ## Ejecución en paralelo
 
@@ -155,9 +155,17 @@ Todo este bloque es `@integ M0` y es secuencial. Los carriles no empiezan hasta 
 
 **Puerta de validación**
 
-- [ ] **[D]** `@integ` `M0` Revisar conjuntamente la tabla de entidades, sus relaciones y el diagrama entidad-relación.
-- [ ] **[D]** `@integ` `M0` Validar las reglas de exclusividad, expiración e idempotencia antes de implementar el modelo.
-- [ ] **[D]** `@integ` `M0` Cerrar o asignar responsable y fecha a cada pregunta abierta. **Nota:** en la revisión del 2026-11-18 no quedan notas **Pendiente:** en las secciones 0 a 4. La única mención, la prueba de dos bloqueos simultáneos del mismo cliente (§3), quedó asignada a `@back M2`. Falta la confirmación humana.
+- [x] **[D]** `@integ` `M0` Revisar conjuntamente la tabla de entidades, sus relaciones y el diagrama entidad-relación.
+  - **Validación documental del 2026-11-18.** Cada asiento pertenece directamente a un vuelo y el modelo prescinde de tablas de aeronaves y aeropuertos. La FK compuesta y `UNIQUE (flight_id, seat_code)` limitan a una reserva por asiento. El diagrama permite cero asientos por vuelo y el *seed* define 24 o 6 para los vuelos que genera. [Modelo de datos](persistence.md#modelo-de-datos).
+  - `held_by`, `hold_token`, `hold_expires_at` y `version` cubren la titularidad, el vencimiento y la sincronización. El frontend recupera el bloqueo propio y calcula la cuenta regresiva con `serverNow` de PostgreSQL. [Contrato de tiempo real](contracts-and-open-questions.md#socketio).
+  - El catálogo de 3 aeropuertos y 6 rutas cubre la demo con sus vuelos habituales de 24 asientos y el tercer horario de `BOG → MDE` con 6. Para mostrar «Agotado» debe haber una salida futura de ese horario en la ventana UTC del *seed*. La comprobación de la migración y el *seed* en PostgreSQL queda en M1. [Catálogo](business-rules.md#catálogo-y-datos-iniciales).
+- [x] **[D]** `@integ` `M0` Validar las reglas de exclusividad, expiración e idempotencia antes de implementar el modelo.
+  - **Validación documental del 2026-11-18.** El `UPDATE` condicional y los índices únicos protegen el asiento y el límite por titular y vuelo. El `hold` y la confirmación también comprueban el estado del vuelo bajo un bloqueo de fila cuando pueden coincidir con una cancelación. [Concurrencia](architecture.md#42-qué-garantiza-qué).
+  - El barrido de 1 s y la adquisición directa comparten el límite `hold_expires_at <= now()` de PostgreSQL. Para una clave de compra ya confirmada, una huella igual devuelve `200` con el boleto original y una distinta devuelve `422`. Quedaron definidos los resultados y eventos esperados en las carreras. Las pruebas sobre PostgreSQL quedan en M2 y M3. [Casos de aceptación](contracts-and-open-questions.md#casos-de-aceptación-para-la-implementación).
+- [x] **[D]** `@integ` `M0` Cerrar o asignar responsable y fecha a cada pregunta abierta.
+  - **Revisión del 2026-11-18.** La sección 4 de la kata queda cubierta en el diseño por el monolito modular NestJS, Angular, REST, Socket.IO y `packages/shared`. La sección 6.2 queda cubierta por el diagrama (§2), la justificación (§3), concurrencia y sincronización (§4) y decisiones de stack, persistencia y caché (§6). [Arquitectura](architecture.md).
+  - Quedaron definidas las suscripciones al navegar, la fusión de eventos parciales con instantáneas, la recuperación de estado y el arranque local de la demo. M2 implementa y prueba el reintento de la transacción ante un interbloqueo al cambiar de asiento. La evidencia de las cuatro historias con el sistema real se recoge en M5. [Casos de aceptación](contracts-and-open-questions.md#casos-de-aceptación-para-la-implementación).
+  - La estructura actual compiló y pasó lint y las cuatro pruebas existentes. En un proyecto Compose aislado, con el archivo `.env` deshabilitado, Nginx sirvió Angular y se verificaron `GET /api/health` con PostgreSQL y la conexión WebSocket a `/ws`.
 
 Resultado esperado: ninguna pregunta abierta que bloquee la implementación.
 
@@ -186,7 +194,7 @@ Todo este bloque es del carril backend. Cada tarea indica su hito.
 - [ ] **[I]** `@back` `M2` Implementar en `libs/domain` las funciones puras de transición del asiento, con pruebas unitarias.
 - [ ] **[V]** `@back` `M2` Probar contra PostgreSQL real que solicitudes simultáneas por un mismo asiento producen un único bloqueo exitoso (50 `hold` simultáneos: 1 éxito y 49 `409`). Evidencia: _(test)_
 - [ ] **[V]** `@back` `M2` Verificar la expiración y liberación de bloqueos, incluso sin clientes conectados (§0, §2). Evidencia: _(test)_
-- [ ] **[V]** `@back` `M2` Probar el reintento idempotente del bloqueo, la titularidad de la liberación y la restricción de un bloqueo activo por cliente y vuelo, incluidos dos bloqueos simultáneos del mismo cliente sobre asientos distintos (§2, §3). Evidencia: _(test)_
+- [ ] **[V]** `@back` `M2` Probar el reintento idempotente del bloqueo, la titularidad de la liberación y la restricción de un bloqueo activo por cliente y vuelo, incluidos dos bloqueos simultáneos del mismo cliente sobre asientos distintos. Probar que un interbloqueo al cambiar de asiento se revierte antes de reintentar. [Bloqueo atómico](architecture.md#43-bloqueo-atómico-idempotente-para-su-titular). Evidencia: _(test)_
 - [ ] **[V]** `@back` `M2` Verificar que el servidor rechaza el bloqueo en vuelos cancelados (§2). Evidencia: _(test)_
 
 **M3 · Confirmación y pago**
@@ -216,7 +224,7 @@ Hasta que llegue cada hito real, el frontend trabaja contra un adaptador falso e
 
 - [ ] **[I]** `@front` `F1` Implementar el núcleo: `clientId` en `sessionStorage`, cliente HTTP tipado con `shared` (`X-Client-Id`, `Idempotency-Key`), servicio de socket (`join` solo en `connect`, `auth.clientId`, `transports: ['websocket']`) y traducción de errores por `code`.
 - [ ] **[I]** `@front` `F1` Implementar el almacén por vuelo y el almacén de vuelos con fusión por `version` (`arch` §4.6), con los contadores como `computed()`.
-- [ ] **[V]** `@front` `F1` Pruebas unitarias del almacén: fusión por versión, duplicados, desorden y descarte del bloqueo propio cuando un evento avanza la versión. Evidencia: _(test)_
+- [ ] **[V]** `@front` `F1` Probar fusión por versión, duplicados, eventos de vuelo antes de cargar el catálogo, descarte del bloqueo propio y cambio de suscripción al navegar entre vuelos. [Sincronización](architecture.md#46-consistencia-del-cliente-fusión-por-versión). Evidencia: _(test)_
 - [ ] **[I]** `@front` `F1` Implementar el adaptador falso descrito arriba y la configuración `fake` en `angular.json`.
 - [ ] **[I]** `@front` `F2` Implementar la búsqueda (HU1): formulario, listado con UTC visible, estados cancelado y agotado, y actualización en su lugar con `flight.status_changed`.
 - [ ] **[I]** `@front` `F3` Implementar el mapa de asientos (HU2): selección con bloqueo, asiento propio resaltado, cuenta regresiva con `holdExpiresAt` y `serverNow`, recuperación con `myHold` y reversión ante `409`.
