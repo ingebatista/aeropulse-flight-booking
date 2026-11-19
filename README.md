@@ -7,6 +7,18 @@ Prototipo funcional de un sistema de reservas de vuelos en tiempo real, desarrol
 - **Base de datos:** PostgreSQL 17. El bloqueo y la confirmación de asientos usan sentencias `UPDATE` condicionales y restricciones únicas, para que nunca haya dos reservas del mismo asiento.
 - **Contratos compartidos:** `packages/shared` (DTOs, errores y eventos), con salida ESM y CommonJS. Es el paquete compartido opcional que sugiere el enunciado.
 
+## Acceso rápido
+
+Con la aplicación levantada (`docker compose up --build`, ver [Ejecutar con Docker Compose](#ejecutar-con-docker-compose)):
+
+| Qué | Dónde |
+| --- | --- |
+| Aplicación (búsqueda de vuelos) | `http://localhost:8080` (en desarrollo local, `http://localhost:4200`) |
+| **Vista de administración** | `http://localhost:8080/admin/acceso` |
+| **Token de administración** | `AeroPlus-admin-dev` |
+
+> **¿Buscas el acceso de administrador?** Entra en `/admin/acceso` y escribe el token `AeroPlus-admin-dev`. Es el valor por defecto en desarrollo y en Compose, y se puede cambiar con la variable `ADMIN_TOKEN` (ver [Variables opcionales](#variables-opcionales)). Es la única vista protegida; permite marcar un vuelo como retrasado o cancelado, y el cambio llega a todas las pestañas en tiempo real. El resto de las vistas son públicas. El detalle está en [Accesos y rutas de la interfaz](#accesos-y-rutas-de-la-interfaz).
+
 ## Cobertura del enunciado
 
 Cada historia de usuario de la kata y su regla de tiempo real, con el lugar donde se explica y donde se puede probar.
