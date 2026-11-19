@@ -40,6 +40,10 @@ services:
       NODE_ENV: ${APP_NODE_ENV:-development}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-aeropulse-admin-dev}
       HOLD_TTL_SECONDS: ${HOLD_TTL_SECONDS:-300}
+      RATE_LIMIT_GLOBAL: ${RATE_LIMIT_GLOBAL:-120}
+      RATE_LIMIT_HOLD: ${RATE_LIMIT_HOLD:-30}
+      RATE_LIMIT_CONFIRM: ${RATE_LIMIT_CONFIRM:-10}
+      RATE_LIMIT_ADMIN: ${RATE_LIMIT_ADMIN:-30}
       PGHOST: db
       PGPORT: '5432'
       DB_NAME: ${DB_NAME:-flights}

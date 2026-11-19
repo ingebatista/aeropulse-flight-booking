@@ -261,11 +261,11 @@ describe('GET /api/flights', () => {
       });
     });
 
-    it('responde con la forma del catálogo ante una ruta inexistente (provisional: CCR-1)', async () => {
+    it('responde con la forma del catálogo ante una ruta inexistente', async () => {
       const { status, body } = await get('/api/no-existe');
 
       expect(status).toBe(404);
-      expect((body as ErrorResponse).error.code).toBe('INTERNAL_ERROR');
+      expect((body as ErrorResponse).error.code).toBe('NOT_FOUND');
       expect(Object.keys((body as ErrorResponse).error).sort()).toEqual(['code', 'message']);
     });
   });
