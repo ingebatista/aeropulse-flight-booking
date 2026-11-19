@@ -1,14 +1,98 @@
 <section class="occupancy" aria-labelledby="occupancy-title">
-  <h2 id="occupancy-title">Ocupación del vuelo</h2>
+  @let capacity = summary();
+  @let current = flight();
+  <header class="flight-summary">
+    <div class="summary-heading">
+      <div>
+        <p class="eyebrow">Monitoreo de cabina</p>
+        <h2 id="occupancy-title">Ocupación del vuelo</h2>
+      </div>
+      @if (current) {
+        <div class="flight-badges">
+          <span class="flight-badge" [attr.data-flight-status]="current.status">
+            {{ flightStatusLabels[current.status] }}
+          </span>
+          @if (current.soldOut) {
+            <span class="flight-badge">Agotado</span>
+          }
+        </div>
+      }
+    </div>
+    <dl class="flight-facts">
+      @if (current) {
+        <div>
+          <dt>Salida programada</dt>
+          <dd>
+            <time [attr.datetime]="current.departureAt"
+              >{{ schedule(current.departureAt) }} UTC</time
+            >
+          </dd>
+        </div>
+        <div>
+          <dt>Llegada programada</dt>
+          <dd>
+            <time [attr.datetime]="current.arrivalAt">{{ schedule(current.arrivalAt) }} UTC</time>
+          </dd>
+        </div>
+      }
+      <div class="capacity-total">
+        <dt>Capacidad de la cabina</dt>
+        <dd>{{ capacity.total }} {{ capacity.total === 1 ? 'plaza' : 'plazas' }}</dd>
+      </div>
+    </dl>
+  </header>
+
   <dl class="counts">
-    @for (status of statuses; track status) {
-      <div class="count" [attr.data-status]="status">
+    @for (state of capacity.states; track state.status) {
+      <div class="count" [attr.data-status]="state.status">
         <dt>
-          <span aria-hidden="true">{{ appearance[status].icon }}</span> {{ labels[status] }}
+          {{ labels[state.status] }}
+          <span class="count-icon" aria-hidden="true">{{ appearance[state.status].icon }}</span>
         </dt>
-        <dd>{{ inventory().counts()[status] }}</dd>
+        <dd class="count-value">{{ state.count }}</dd>
+        @if (state.percentage; as percentage) {
+          <dd class="count-ratio">{{ percentage }} del total</dd>
+        }
       </div>
     }
   </dl>
-  <app-seat-grid [seats]="inventory().seats()" />
+
+  @if (capacity.total) {
+    <div class="distribution" aria-hidden="true">
+      <p class="distribution-title">Distribución de la cabina</p>
+      <div class="distribution-bar">
+        @for (state of capacity.states; track state.status) {
+          @if (state.count) {
+            <span [attr.data-status]="state.status" [style.flex-grow]="state.count"></span>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <section class="cabin-panel" aria-labelledby="cabin-title">
+    <div class="cabin-heading">
+      <h3 id="cabin-title">Plano de asientos de cabina</h3>
+      <span class="cabin-mode">Solo lectura</span>
+    </div>
+    <app-seat-grid [seats]="inventory().seats()" [showColumnLabels]="true" />
+    @if (capacity.total) {
+      <ul class="seat-legend" role="list" aria-label="Estados de los asientos">
+        @for (state of capacity.states; track state.status) {
+          <li [attr.data-status]="state.status">
+            <span aria-hidden="true">{{ appearance[state.status].icon }}</span>
+            {{ labels[state.status] }} <strong>{{ state.count }}</strong>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <div class="cabin-note">
+    <span class="cabin-note-icon" aria-hidden="true">ⓘ</span>
+    <p>
+      Los códigos identifican la fila y la posición. Para elegir un asiento, ve a «Mapa de
+      asientos».
+    </p>
+  </div>
 </section>

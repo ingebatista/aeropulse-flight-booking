@@ -134,7 +134,15 @@ describe('Mapa y ocupación de un vuelo', () => {
     expect(sockets).toHaveLength(1);
     expect(page().querySelectorAll('.cabin .seat')).toHaveLength(24);
     expect(page().querySelector('button.seat')).toBeNull();
+    expect(page().querySelector('.capacity-total dd')?.textContent).toBe('24 plazas');
+    expect(page().querySelector('.flight-summary time')?.textContent).toContain('22:30 UTC');
+    expect(page().querySelector('.flight-badge')?.textContent).toContain('Programado');
+    expect(page().querySelector('.seat-columns')?.textContent?.replace(/\s+/g, '')).toBe('ABCD');
     expect(page().querySelector(".count[data-status='HELD'] dd")?.textContent).toBe('1');
+    expect(page().querySelector(".count[data-status='HELD'] .count-ratio")?.textContent).toMatch(
+      /4,2\s*% del total/,
+    );
+    expect(page().querySelector('.distribution-bar [data-status="BOOKED"]')).toBeNull();
     socket.handlers.events['seat.changed']({ ...held, status: 'BOOKED', version: 3 });
     socket.handlers.events['seat.changed']({ ...held, status: 'AVAILABLE', version: 3 });
     socket.handlers.events['seat.changed'](held);
@@ -142,6 +150,32 @@ describe('Mapa y ocupación de un vuelo', () => {
     expect(page().querySelector(".count[data-status='AVAILABLE'] dd")?.textContent).toBe('23');
     expect(page().querySelector(".count[data-status='BOOKED'] dd")?.textContent).toBe('1');
     expect(page().querySelector(".cabin [data-status='BOOKED']")?.textContent).toContain('1A');
+    const bar = page().querySelector('.distribution-bar');
+    expect(bar?.querySelector<HTMLElement>('[data-status="AVAILABLE"]')?.style.flexGrow).toBe('23');
+    expect(bar?.querySelector<HTMLElement>('[data-status="BOOKED"]')?.style.flexGrow).toBe('1');
+    expect(bar?.querySelector('[data-status="HELD"]')).toBeNull();
+
+    socket.handlers.disconnect();
+    harness.detectChanges();
+    expect(page().textContent).toContain('Sin conexión');
+    expect(page().querySelector('.distribution-bar')).toBe(bar);
+    render(snapshot(6, 'ABCD'));
+    expect(page().querySelector('.distribution-bar')).toBe(bar);
+    expect(page().querySelector(".cabin [data-status='BOOKED']")?.textContent).toContain('1A');
+  });
+
+  it('muestra el inventario vacío sin porcentajes ni barra de distribución', async () => {
+    await harness.navigateByUrl(`${path}/ocupacion`);
+    render(snapshot(0, ''));
+
+    expect(page().querySelector('.capacity-total dd')?.textContent).toBe('0 plazas');
+    expect([...page().querySelectorAll('.count-value')].map((count) => count.textContent)).toEqual([
+      '0',
+      '0',
+      '0',
+    ]);
+    expect(page().querySelector('.count-ratio, .distribution-bar, .seat-legend')).toBeNull();
+    expect(page().textContent).toContain('No hay asientos registrados para este vuelo.');
   });
 
   it('bloquea por HTTP, conserva el asiento anterior ante un 409 y lo libera por su token', async () => {

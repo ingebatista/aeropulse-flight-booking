@@ -4,6 +4,10 @@
   padding-block: 28px 48px;
 }
 
+.detail-page:has(.detail-nav__occupancy.selected) {
+  width: min(var(--content-width), calc(100% - 32px));
+}
+
 .back,
 .detail-nav a {
   display: inline-flex;
