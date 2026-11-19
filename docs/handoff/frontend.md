@@ -22,12 +22,13 @@ Trabaja directamente en esa carpeta. No crees otro worktree ni otra rama.
 
 ## Adaptador falso
 
-Mientras un hito del backend no esté en `develop`, el frontend usa un adaptador en memoria que cumple los contratos:
+Durante los hitos de frontend se usó un adaptador en memoria mientras llegaba el backend a `develop`:
 
 - Un `HttpInterceptorFn` que atiende `/api/*` y una fábrica de socket inyectable que simula `/ws`.
-- Solo se activan con la configuración `fake` de `angular.json`. No son puertos nuevos ni capas nuevas.
-- Reproducen lo observable: versiones que solo crecen, vencimiento del bloqueo con `holdExpiresAt` y `serverNow`, `409`, `402`, `422`, eventos duplicados y desordenados.
-- Cada capacidad (`search`, `seats`, `realtime`, `booking`, `admin`) se apaga por separado cuando llega su hito real.
+- Se activaba con la configuración `fake` de `angular.json`.
+- Reproducía versiones crecientes, vencimiento del bloqueo con `holdExpiresAt` y `serverNow`, respuestas `409`, `402` y `422`, y eventos duplicados o desordenados.
+
+Con M1–M4 integrados, las cinco capacidades usan el backend real. El perfil `fake` se retiró de Angular y los simuladores HTTP y Socket.IO se conservan en las pruebas del transporte.
 
 ## Hitos y tareas
 
@@ -167,3 +168,17 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
   | Lighthouse, modo `snapshot` | `Accessibility: 100` sin fallos de accesibilidad en búsqueda, mapa, ocupación, compra, consulta de boleto, acceso, diálogo de cancelación y panel. |
 
 - El `PATCH` real y la sincronización entre dos pestañas quedan pendientes de M4 y sus dependencias en `develop`. Los resultados con `fake` son pre-evidencia para F5.
+
+### F2–F5 · Capacidades reales · 2026-11-19
+
+- Commit validado en `develop`: `3f409a3`. Se retiró `fake` de `build` y `serve` de Angular. El proveedor simulado quedó configurado en `fake-transport.spec.ts`.
+- `npm run build -w frontend` compiló correctamente, `npm test -w frontend` aprobó 34 pruebas en 8 archivos y `npm run lint` terminó con código 0.
+- `docker compose -p aeropulse-f2-f5 up -d --build --wait --wait-timeout 120` levantó el stack local. PostgreSQL y la API quedaron saludables, se aplicaron 2 migraciones y `GET /api/health` devolvió `200` con `{"status":"ok"}`.
+
+| Capacidad real | Evidencia en el navegador |
+| --- | --- |
+| `search` · M1 | `GET /api/flights` devolvió `200` para `BOG → MDE` el 19 de noviembre de 2026 UTC. La interfaz mostró `AP103` y `AP105` en el mismo orden que la respuesta. |
+| `seats` · M2 | En `AP105`, `POST` al recurso de bloqueo de `1A` devolvió `201` y el mapa mostró «Mi asiento». `DELETE` devolvió `204` y el mapa volvió a mostrar «Disponible». |
+| `realtime` · M2 | Nginx registró el cambio de protocolo `101` para `/ws/`. Una segunda sesión del mapa observó `AVAILABLE → HELD → AVAILABLE` para `1A`, sin recargar. |
+| `booking` · M3 | El checkout confirmó `1A` en `AP105` con `POST /api/bookings/confirm` (`201`). La consulta por código y apellido devolvió `200` y mostró el mismo boleto. |
+| `admin` · M4 | El panel marcó `AP103` como retrasado mediante `PATCH /api/admin/flights/:flightId/status` (`200`). El listado público de otra sesión pasó de «Programado» a «Retrasado» sin recargar. |
