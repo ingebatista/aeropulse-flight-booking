@@ -249,6 +249,10 @@ describe('Confirmación y consulta de reservas', () => {
     http.expectNone((request) => request.url.startsWith('/api/bookings/'));
     harness.detectChanges();
     expect(page().querySelector('#lookup-code-error')).not.toBeNull();
+    expect(page().querySelector('#booking-code')?.getAttribute('aria-describedby')).toBe(
+      'lookup-code-help lookup-code-error',
+    );
+    expect(document.activeElement?.id).toBe('booking-code');
 
     fill('#booking-code', ticket.code.toLowerCase());
     submit();
@@ -265,6 +269,40 @@ describe('Confirmación y consulta de reservas', () => {
     http.expectOne(`/api/bookings/${ticket.code}?lastName=G%C3%B3mez`).flush(ticket);
     harness.detectChanges();
     expect(page().querySelector('.booking-code')?.textContent).toBe(ticket.code);
+    expect(page().querySelector('form')).toBeNull();
+  });
+
+  it('muestra la carga, reintenta un fallo de conexión y restaura el formulario vacío', async () => {
+    await harness.navigateByUrl('/boletos');
+    fill('#booking-code', ticket.code);
+    fill('#booking-name', ticket.passenger.lastName);
+    submit();
+    submit();
+    const lookupUrl = `/api/bookings/${ticket.code}?lastName=G%C3%B3mez`;
+    const first = http.expectOne(lookupUrl);
+    harness.detectChanges();
+    const button = page().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Consultando…');
+    first.error(new ProgressEvent('error'));
+    harness.detectChanges();
+    expect(button.disabled).toBe(false);
+    expect(button.textContent).toContain('Reintentar consulta');
+    expect(page().querySelector('[role="alert"]')).not.toBeNull();
+
+    submit();
+    http.expectOne(lookupUrl).flush(ticket);
+    harness.detectChanges();
+    expect(page().querySelector('form')).toBeNull();
+    expect(page().querySelector('.booking-code')?.textContent).toBe(ticket.code);
+
+    page().querySelector<HTMLButtonElement>('.lookup-reset')!.click();
+    await harness.fixture.whenStable();
+    expect(page().querySelector('app-ticket')).toBeNull();
+    expect(page().querySelector<HTMLInputElement>('#booking-code')?.value).toBe('');
+    expect(page().querySelector<HTMLInputElement>('#booking-name')?.value).toBe('');
+    expect(document.activeElement?.id).toBe('booking-code');
+    http.expectNone(lookupUrl);
   });
 
   it('copia solo el código, ofrece copia manual si falla e imprime el boleto', async () => {

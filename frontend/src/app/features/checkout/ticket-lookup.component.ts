@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   afterNextRender,
   inject,
   signal,
@@ -25,15 +26,22 @@ import { TicketComponent } from './ticket.component';
 export class TicketLookupComponent {
   private readonly api = inject(ReservationApi);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
+  private readonly codeInput = viewChild<ElementRef<HTMLInputElement>>('code');
   protected readonly pending = signal(false);
-  protected readonly error = signal('');
+  protected readonly error = signal<{ message: string; retryable: boolean } | null>(null);
   protected readonly invalidCode = signal(false);
   protected readonly invalidName = signal(false);
   protected readonly ticket = signal<Ticket | null>(null);
 
   constructor() {
     afterNextRender(() => this.heading().nativeElement.focus());
+  }
+
+  protected startAnotherLookup(): void {
+    this.ticket.set(null);
+    afterNextRender(() => this.codeInput()?.nativeElement.focus(), { injector: this.injector });
   }
 
   protected submit(event: Event, codeInput: HTMLInputElement, nameInput: HTMLInputElement): void {
@@ -44,8 +52,7 @@ export class TicketLookupComponent {
     const codeValid = BOOKING_CODE_PATTERN.test(code);
     this.invalidCode.set(!codeValid);
     this.invalidName.set(lastName === null);
-    this.error.set('');
-    this.ticket.set(null);
+    this.error.set(null);
     if (!codeValid || !lastName) {
       (!codeValid ? codeInput : nameInput).focus();
       return;
@@ -62,11 +69,16 @@ export class TicketLookupComponent {
         },
         error: (error: ApiError) => {
           this.pending.set(false);
-          this.error.set(
-            error.code === 'BOOKING_NOT_FOUND'
-              ? 'No encontramos un boleto con ese código y apellido.'
-              : error.message,
-          );
+          this.error.set({
+            message:
+              error.code === 'BOOKING_NOT_FOUND'
+                ? 'No encontramos un boleto con ese código y apellido.'
+                : error.message,
+            retryable:
+              error.code === 'NETWORK_ERROR' ||
+              error.code === 'INTERNAL_ERROR' ||
+              (error.status ?? 0) >= 500,
+          });
         },
       });
   }
