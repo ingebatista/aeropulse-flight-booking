@@ -19,6 +19,7 @@ Con la aplicación levantada (`docker compose up --build`, ver [Ejecutar con Doc
 
 En `/admin/acceso`, escribe `aeropulse-admin-dev` en minúsculas o usa el valor de `ADMIN_TOKEN` si lo configuraste. Selecciona el vuelo que quieres retrasar o cancelar. El listado público refleja el cambio en tiempo real. Consulta [Accesos y rutas de la interfaz](#accesos-y-rutas-de-la-interfaz).
 
+
 ## Cobertura del enunciado
 
 Cada historia de usuario de la kata y su regla de tiempo real, con el lugar donde se explica y donde se puede probar.
