@@ -1,10 +1,13 @@
 <app-flight-search>
   <div class="admin-tools" flight-search-tools>
-    <button class="secondary" type="button" (click)="logout()">Cerrar sesión</button>
+    <div class="admin-toolbar">
+      <p>Selecciona un vuelo para consultar su estado o actualizarlo.</p>
+      <button class="secondary" type="button" (click)="logout()">Cerrar sesión</button>
+    </div>
     @if (error()) {
       <p class="booking-alert" role="alert">{{ error() }}</p>
     }
-    <div role="status">
+    <div class="admin-feedback" role="status">
       @if (pending()) {
         <p>Actualizando el estado…</p>
       } @else if (success()) {
@@ -13,28 +16,116 @@
     </div>
   </div>
 
-  <ng-template #flightActions let-flight>
-    @if (flight.status === 'SCHEDULED') {
-      <button
-        #delay
-        class="secondary"
-        type="button"
-        [attr.aria-disabled]="pending()"
-        (click)="change(flight, 'DELAYED', delay)"
-      >
-        Marcar retraso<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span>
-      </button>
-    }
-    @if (flight.status !== 'CANCELLED') {
-      <button
-        #cancel
-        class="secondary danger"
-        type="button"
-        [attr.aria-disabled]="pending()"
-        (click)="askCancellation(flight, cancel, dialog)"
-      >
-        Cancelar vuelo<span class="sr-only"> {{ flight.flightNumber }}</span>
-      </button>
+  <ng-template #adminResults>
+    @if (selectedFlight(); as selected) {
+      <div class="admin-board">
+        <ul class="admin-flight-list" role="list" aria-label="Vuelos de la consulta">
+          @for (flight of results(); track flight.id) {
+            <li>
+              <button
+                class="admin-flight-option"
+                type="button"
+                [id]="'admin-flight-' + flight.id"
+                [attr.aria-pressed]="selected.id === flight.id"
+                aria-controls="admin-selected-flight"
+                (click)="selectedId.set(flight.id)"
+              >
+                <span class="admin-flight-top">
+                  <strong>{{ flight.flightNumber }}</strong>
+                  <span class="status-badge" [attr.data-status]="flight.status">
+                    {{ statusLabels[flight.status] }}
+                  </span>
+                </span>
+                <span>{{ flight.origin }} → {{ flight.destination }}</span>
+                <span class="admin-flight-time">
+                  {{ flight.departureAt | date: 'HH:mm' : 'UTC' }} →
+                  {{ flight.arrivalAt | date: 'HH:mm' : 'UTC' }} UTC
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+
+        <section
+          class="admin-detail"
+          id="admin-selected-flight"
+          aria-labelledby="admin-detail-title"
+        >
+          <header class="admin-detail-header">
+            <div>
+              <p>Resumen del vuelo</p>
+              <h3 id="admin-detail-title">{{ selected.flightNumber }}</h3>
+              <p class="admin-route">{{ selected.origin }} → {{ selected.destination }}</p>
+            </div>
+            <div class="admin-statuses">
+              <span class="status-badge" [attr.data-status]="selected.status">
+                {{ statusLabels[selected.status] }}
+              </span>
+              @if (selected.soldOut) {
+                <span class="status-badge" data-status="SOLD_OUT">Agotado</span>
+              }
+            </div>
+          </header>
+          <dl class="admin-schedule">
+            <div>
+              <dt>Salida · UTC</dt>
+              <dd>
+                <time [attr.datetime]="selected.departureAt">
+                  {{ selected.departureAt | date: 'dd/MM/yyyy, HH:mm' : 'UTC' }}
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt>Llegada · UTC</dt>
+              <dd>
+                <time [attr.datetime]="selected.arrivalAt">
+                  {{ selected.arrivalAt | date: 'dd/MM/yyyy, HH:mm' : 'UTC' }}
+                </time>
+              </dd>
+            </div>
+          </dl>
+          <div class="admin-occupancy">
+            <p>Consulta el plano y la disponibilidad de asientos.</p>
+            <a
+              class="secondary"
+              [routerLink]="['/vuelos', selected.id, 'ocupacion']"
+              [queryParams]="{ from: 'admin' }"
+              >Ver ocupación<span class="sr-only"> del vuelo {{ selected.flightNumber }}</span></a
+            >
+          </div>
+          <div class="admin-controls">
+            <h4>Control operacional</h4>
+            @if (selected.status === 'CANCELLED') {
+              <p>Este vuelo está cancelado.</p>
+            } @else {
+              <div class="admin-actions">
+                @if (selected.status === 'SCHEDULED') {
+                  <button
+                    #delay
+                    class="secondary delay"
+                    type="button"
+                    [attr.aria-disabled]="pending()"
+                    (click)="change(selected, 'DELAYED', delay)"
+                  >
+                    Marcar retraso<span class="sr-only">
+                      del vuelo {{ selected.flightNumber }}</span
+                    >
+                  </button>
+                }
+                <button
+                  #cancel
+                  class="secondary danger"
+                  type="button"
+                  [attr.aria-disabled]="pending()"
+                  (click)="askCancellation(selected, cancel, dialog)"
+                >
+                  Cancelar vuelo<span class="sr-only"> {{ selected.flightNumber }}</span>
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
     }
   </ng-template>
 </app-flight-search>
@@ -45,7 +136,8 @@
   aria-describedby="cancel-message"
   (close)="closeDialog()"
 >
-  <h2 id="cancel-title">Cancelar vuelo {{ cancellation()?.flight?.flightNumber }}</h2>
+  <span class="dialog-mark" aria-hidden="true">!</span>
+  <h2 id="cancel-title">¿Cancelar el vuelo {{ cancellation()?.flight?.flightNumber }}?</h2>
   <p id="cancel-message">
     El vuelo quedará cancelado y se cerrarán las nuevas reservas. Esta acción es definitiva.
   </p>

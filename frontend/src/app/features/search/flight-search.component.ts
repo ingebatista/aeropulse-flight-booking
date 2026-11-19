@@ -72,8 +72,7 @@ export class FlightSearchComponent {
   protected readonly airportCodes = AIRPORT_CODES;
   protected readonly statusView =
     inject(ActivatedRoute, { optional: true })?.snapshot.data['statusView'] === true;
-  protected readonly flightActions =
-    contentChild<TemplateRef<{ $implicit: Flight }>>('flightActions');
+  protected readonly adminResults = contentChild<TemplateRef<unknown>>('adminResults');
   protected readonly airports = AIRPORTS;
   protected readonly flightStatuses: Record<FlightStatus, { label: string; icon: string }> = {
     SCHEDULED: { label: 'Programado', icon: '✓' },

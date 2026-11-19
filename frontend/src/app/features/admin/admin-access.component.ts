@@ -23,6 +23,7 @@ export class AdminAccessComponent {
   private readonly tokenField = viewChild.required<ElementRef<HTMLInputElement>>('tokenField');
   protected readonly error = this.session.error;
   protected readonly invalid = signal(false);
+  protected readonly tokenVisible = signal(false);
 
   constructor() {
     afterNextRender(() => this.tokenField().nativeElement.focus());

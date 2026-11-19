@@ -73,10 +73,10 @@ describe('Administración y estado de vuelos', () => {
     return harness.routeNativeElement!;
   }
 
-  async function openAdmin(): Promise<void> {
+  async function openAdmin(flights: readonly Flight[] = [flight]): Promise<void> {
     TestBed.inject(AdminSession).start('token-de-test');
     await harness.navigateByUrl('/admin');
-    http.expectOne(searchUrl).flush({ flights: [flight] });
+    http.expectOne(searchUrl).flush({ flights });
     harness.detectChanges();
   }
 
@@ -92,6 +92,13 @@ describe('Administración y estado de vuelos', () => {
 
     const field = page().querySelector<HTMLInputElement>('#admin-token')!;
     field.value = 'token-de-test';
+    action('.token-visibility').click();
+    harness.detectChanges();
+    expect(field.type).toBe('text');
+    expect(field.value).toBe('token-de-test');
+    action('.token-visibility').click();
+    harness.detectChanges();
+    expect(field.type).toBe('password');
     page()
       .querySelector('form')!
       .dispatchEvent(new Event('submit', { cancelable: true }));
@@ -105,7 +112,7 @@ describe('Administración y estado de vuelos', () => {
 
   it('limpia la sesión y vuelve al acceso cuando el servidor devuelve 401', async () => {
     await openAdmin();
-    action('.flight__actions button').click();
+    action('.admin-actions button').click();
     const request = http.expectOne(patchUrl);
     expect(request.request.headers.get('Authorization')).toBe('Bearer token-de-test');
     request.flush({ error: { code: 'UNAUTHORIZED' } }, { status: 401, statusText: 'Unauthorized' });
@@ -119,7 +126,7 @@ describe('Administración y estado de vuelos', () => {
     await openAdmin();
     expect(page().querySelector('.search-page--public')).toBeNull();
     expect(page().querySelector('h1')?.textContent?.trim()).toBe('Administración');
-    const delay = action('.flight__actions button');
+    const delay = action('.admin-actions button');
     delay.click();
     delay.click();
     const request = http.expectOne({ url: patchUrl, method: 'PATCH' });
@@ -131,7 +138,7 @@ describe('Administración y estado de vuelos', () => {
     harness.detectChanges();
     expect(page().querySelector('[data-status="DELAYED"]')).not.toBeNull();
     expect(page().querySelector('[data-status="SOLD_OUT"]')).not.toBeNull();
-    expect(page().querySelectorAll('.flight__actions button')).toHaveLength(1);
+    expect(page().querySelectorAll('.admin-actions button')).toHaveLength(1);
 
     const dialog = page().querySelector('dialog')!;
     // jsdom permite probar el flujo de cierre, pero el navegador aplica el foco nativo.
@@ -140,7 +147,15 @@ describe('Administración y estado de vuelos', () => {
       dialog.removeAttribute('open');
       dialog.dispatchEvent(new Event('close'));
     };
-    action('.flight__actions button').click();
+    const cancel = action('.admin-actions button');
+    cancel.click();
+    harness.detectChanges();
+    dialog.close();
+    harness.detectChanges();
+    http.expectNone(patchUrl);
+    expect(document.activeElement).toBe(cancel);
+
+    cancel.click();
     harness.detectChanges();
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain(flight.flightNumber);
@@ -151,12 +166,42 @@ describe('Administración y estado de vuelos', () => {
     cancellation.flush({ ...delayed, status: 'CANCELLED', version: 3 });
     harness.detectChanges();
     expect(page().querySelector('[data-status="CANCELLED"]')).not.toBeNull();
-    expect(page().querySelector('.flight__actions button')).toBeNull();
+    expect(page().querySelector('.admin-actions button')).toBeNull();
+    expect(document.activeElement).toBe(page().querySelector('.admin-flight-option'));
+  });
+
+  it('selecciona el primer vuelo y conserva la selección por ID al recibir cambios', async () => {
+    const second: Flight = {
+      ...flight,
+      id: '2cf76df7-e693-40ab-9ac1-0dd3e664501c',
+      flightNumber: 'AP107',
+    };
+    await openAdmin([flight, second]);
+    const firstOption = action(`#admin-flight-${flight.id}`);
+    const secondOption = action(`#admin-flight-${second.id}`);
+    expect(firstOption.getAttribute('aria-pressed')).toBe('true');
+    expect(page().querySelector('#admin-detail-title')?.textContent).toBe(flight.flightNumber);
+
+    secondOption.click();
+    handlers.events['flight.status_changed']({
+      flightId: second.id,
+      status: 'DELAYED',
+      soldOut: false,
+      version: 2,
+    });
+    harness.detectChanges();
+    expect(firstOption.getAttribute('aria-pressed')).toBe('false');
+    expect(secondOption.getAttribute('aria-pressed')).toBe('true');
+    expect(page().querySelector('#admin-detail-title')?.textContent).toBe(second.flightNumber);
+    expect(page().querySelector('.admin-detail [data-status="DELAYED"]')).not.toBeNull();
+    expect(page().querySelector('.admin-detail a')?.getAttribute('href')).toBe(
+      `/vuelos/${second.id}/ocupacion?from=admin`,
+    );
   });
 
   it('muestra la espera de Retry-After y actualiza el listado ante un conflicto', async () => {
     await openAdmin();
-    action('.flight__actions button').click();
+    action('.admin-actions button').click();
     http
       .expectOne(patchUrl)
       .flush(
@@ -165,7 +210,7 @@ describe('Administración y estado de vuelos', () => {
       );
     harness.detectChanges();
     expect(page().querySelector('[role="alert"]')?.textContent).toContain('8 segundos');
-    action('.flight__actions button').click();
+    action('.admin-actions button').click();
     http
       .expectOne(patchUrl)
       .flush(
@@ -180,7 +225,7 @@ describe('Administración y estado de vuelos', () => {
 
   it('vuelve al panel administrativo tras abrir la ocupación y visitar el mapa', async () => {
     await openAdmin();
-    page().querySelector<HTMLAnchorElement>('.flight__actions a')!.click();
+    page().querySelector<HTMLAnchorElement>('.admin-occupancy a')!.click();
     await harness.fixture.whenStable();
     expect(page().querySelector('#occupancy-title')?.textContent).toContain('Ocupación del vuelo');
 
@@ -208,14 +253,13 @@ describe('Administración y estado de vuelos', () => {
     expect(TestBed.inject(Router).url).toBe('/admin/acceso');
   });
 
-  it('ofrece el acceso administrativo y regresa desde ocupación a la vista pública de estado', async () => {
+  it('regresa desde ocupación a la vista pública de estado', async () => {
     TestBed.inject(AdminSession).start('token-de-test');
     await harness.navigateByUrl('/estado-de-vuelos');
     http.expectOne(searchUrl).flush({ flights: [{ ...flight, soldOut: false }] });
     harness.detectChanges();
     expect(page().querySelector('.search-page--public')).toBeNull();
     expect(page().querySelector('h1')?.textContent?.trim()).toBe('Estado de vuelos');
-    expect(page().querySelector('a[href="/admin"]')).not.toBeNull();
     expect(page().querySelector('.flight__choose')).toBeNull();
 
     page().querySelector<HTMLAnchorElement>('.flight__actions a')!.click();
