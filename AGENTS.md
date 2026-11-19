@@ -22,6 +22,21 @@ Angular 21 · NestJS 11.2.x (CommonJS, modo monorepo, webpack) · TypeScript `~5
 - No agregues dependencias, capas ni abstracciones que el diseño no pida. Puertos solo en `PaymentGateway` y `EventBus`.
 - Anota en `docs/ia.md` (sección «Registro») cada caso donde corregiste un error propio o el humano te corrigió.
 
+## Carriles en paralelo
+
+El trabajo se reparte en `git worktree` distintos. Antes de empezar, identifica tu carril por la rama (`git branch --show-current`):
+
+| Rama | Carril | Lee y actualiza |
+| --- | --- | --- |
+| `lane/backend` | Backend | [docs/handoff/backend.md](docs/handoff/backend.md) |
+| `lane/frontend` | Frontend | [docs/handoff/frontend.md](docs/handoff/frontend.md) |
+| `develop` | Integrador (humano) | [docs/checklist.md](docs/checklist.md) |
+
+- Edita solo tu área. Solo el integrador cambia `packages/shared`, la checklist, los documentos de diseño, `package.json` y `package-lock.json` de la raíz.
+- No marques casillas de la checklist: anota tu evidencia en tu archivo de seguimiento.
+- Si necesitas un cambio en `packages/shared`, no lo hagas: regístralo como `CCR-n` en tu archivo de seguimiento y detén esa tarea.
+- El registro de correcciones de IA va en tu subsección de `docs/ia.md` («Registro por carril»), antes de su marcador de cierre.
+
 ## Invariantes de concurrencia (no negociables)
 
 1. **Nunca** *check-then-act*. Bloquear, liberar, expirar y confirmar un asiento son **una sola sentencia `UPDATE` condicional** con `RETURNING`; el resultado se decide por `affected`.
