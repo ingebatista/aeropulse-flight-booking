@@ -66,4 +66,22 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 
 ## Registro
 
-_(sin entradas)_
+### M1 · 2026-11-19
+- Hecho:
+  - Entidades `FlightEntity`, `SeatEntity` y `BookingEntity` en `ENTITIES`, y migración `BookingSchema1794960000000` en `MIGRATIONS` (tablas, restricciones nombradas, los 3 índices y `down()` sin `CASCADE`).
+  - *Seed* idempotente (`libs/persistence/src/seed`): catálogo de 10 horarios en 6 rutas, ventana UTC hasta fin de mes y vuelo de demostración `AP105` (6 asientos, 22:30 UTC). Usa `now()` de PostgreSQL, una transacción y `ON CONFLICT DO NOTHING`. `apps/migrate` lo ejecuta tras las migraciones.
+  - Validación estricta (`ApiValidationPipe`), filtro global `ApiExceptionFilter` con la forma `{ error: { code, message, fields? } }`, `configureApp()` compartido entre `main.ts` y las pruebas, y `GET /api/flights`.
+- Comando y salida (worktree `lane-backend`, 2026-11-19):
+  - `npm run build -w backend` → `webpack compiled successfully` (api y migrate).
+  - `npm test -w backend -- --runInBand` → `Test Suites: 6 passed, 6 total · Tests: 70 passed, 70 total` (PostgreSQL 17 real con Testcontainers: migración aplicar/revertir/aplicar con ambos roles, integridad, *seed* y API).
+  - `npm run lint` → 0 errores. `prettier --check "backend/**/*.ts"` → `All matched files use Prettier code style!`.
+- Pendiente de M1: arrancar PostgreSQL con Compose (`npm run db:dev`, puerto `5433` compartido) y `npm run db:migrate` dos veces. No lo ejecuté sin permiso del integrador; las pruebas ya cubren el mismo flujo con la imagen `postgres:17-alpine` y el script de roles de Compose.
+- Desviaciones del contrato: una. Una ruta inexistente responde `404` con `code: 'INTERNAL_ERROR'` (provisional; ver CCR-1).
+- Cambios que necesita la documentación:
+  - `business-rules.md` / `persistence.md`: añadir la tabla del catálogo (números `AP101`–`AP302`, horarios UTC, duraciones y tarifas) que M1 fijó con visto bueno del humano.
+  - `npm run format:check` de la raíz marca `packages/shared/src/index.ts` (viene de M0; el carril no lo toca). Lo resuelve el integrador.
+
+### CCR-1 · 2026-11-19
+- Cambio pedido en `packages/shared`: agregar `NOT_FOUND` a `ERROR_CODES` y `404` a `ERROR_HTTP_STATUS` para rutas inexistentes (`GET /api/xyz`).
+- Motivo y regla afectada: el catálogo de errores de `contracts-and-open-questions.md` no cubre un `404` genérico y toda respuesta de error debe llevar un `code`. Se decidió responder con `INTERNAL_ERROR` y estado `404` mientras tanto.
+- Tarea bloqueada: ninguna; solo queda provisional el código de las rutas inexistentes (`ApiExceptionFilter`).

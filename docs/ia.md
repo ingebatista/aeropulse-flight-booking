@@ -12,7 +12,10 @@ Cada carril escribe solo en su subsección, **antes** de su marcador de cierre. 
 
 ### Carril backend (Claude)
 
-_(sin entradas)_
+- **19 de noviembre de 2026.** En el *seed* usé `.returning(['seat_code'])` con nombres de columna; con un arreglo TypeORM 1.x espera nombres de propiedad, así que el conteo de asientos insertados salía en 0 aunque las filas sí se creaban. Lo cambié a `['seatCode']` y las pruebas del *seed* lo detectaron.
+- **19 de noviembre de 2026.** Mi prueba del pipe de validación destructuraba `code` y `fields` del objeto raíz en vez de `error`, y falló 11 casos aunque la implementación era correcta. Corregí el *helper* para leer `ErrorResponse.error`.
+- **19 de noviembre de 2026.** Planifiqué las pruebas HTTP con `@nestjs/testing`, que no está instalado y no se pueden agregar dependencias. Las reescribí con `NestFactory.create` y `fetch` nativo.
+- **19 de noviembre de 2026.** Esperaba que un estado de asiento desconocido violara `seats_status_check`, pero PostgreSQL informa `seats_hold_check` (se evalúan ambos `CHECK`). La prueba ahora exige solo el código `23514` en ese caso.
 
 <!-- fin carril backend -->
 
