@@ -53,6 +53,7 @@ export class ReservationApi {
     return this.translate(
       this.http.post<Ticket>('/api/bookings/confirm', request, {
         headers: { [CLIENT_ID_HEADER]: this.identity.id, [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        timeout: 15_000,
       }),
     ).pipe(
       tap({

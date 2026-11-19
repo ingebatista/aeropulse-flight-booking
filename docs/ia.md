@@ -21,5 +21,6 @@ _(sin entradas)_
 - **19 de noviembre de 2026.** La prueba del vencimiento usaba `vi.waitFor`, que adelantaba el reloj simulado y cambiaba el `serverNow` esperado. La ajusté para procesar el reconocimiento del socket sin avanzar el tiempo.
 - **19 de noviembre de 2026.** Axe detectó una diferencia entre el nombre accesible y las abreviaturas visibles de los botones de fecha. Usé el texto visible como nombre y la fecha completa en UTC como descripción.
 - **19 de noviembre de 2026.** La primera versión del aviso de F3 dependía del último tick de la cuenta regresiva. Añadí el caso en que el barrido del servidor llega antes y una prueba para distinguirlo de la liberación voluntaria.
+- **19 de noviembre de 2026.** El compilador de Angular rechazó el acceso a los datos de un intento de compra que podía faltar. Cambié la plantilla para elegir el origen de los datos mediante una condición explícita.
 
 <!-- fin carril frontend -->

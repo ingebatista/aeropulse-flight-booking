@@ -109,3 +109,84 @@ button {
 .site-header__link.is-active {
   border-color: #a8c4ec;
 }
+
+.site-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 10px;
+}
+
+.booking-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.booking-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.booking-primary:disabled {
+  background: var(--color-outline);
+  color: var(--color-body);
+  cursor: default;
+}
+
+.booking-field {
+  display: grid;
+  gap: 4px;
+}
+
+.booking-field label {
+  font-weight: 700;
+}
+
+.booking-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--color-control);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--color-navy);
+  background: var(--color-surface);
+}
+
+.booking-field input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.booking-field small,
+.booking-alert {
+  color: #7f251f;
+}
+
+.booking-alert {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--color-error-background);
+}
+
+@media (max-width: 440px) {
+  .site-header nav {
+    gap: 0 4px;
+  }
+
+  .site-header__link {
+    font-size: 13px;
+  }
+
+  .brand {
+    font-size: 20px;
+  }
+}

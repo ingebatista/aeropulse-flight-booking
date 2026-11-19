@@ -11,6 +11,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'boletos',
+    title: 'Consultar boleto | AeroPulse',
+    loadComponent: () =>
+      import('./features/checkout/ticket-lookup.component').then(
+        ({ TicketLookupComponent }) => TicketLookupComponent,
+      ),
+  },
+  {
     path: 'vuelos/:flightId',
     loadComponent: () =>
       import('./features/seat-map/flight-detail.component').then(
@@ -24,6 +32,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/seat-map/seat-map.component').then(
             ({ SeatMapComponent }) => SeatMapComponent,
+          ),
+      },
+      {
+        path: 'checkout',
+        title: 'Confirmar reserva | AeroPulse',
+        loadComponent: () =>
+          import('./features/checkout/checkout.component').then(
+            ({ CheckoutComponent }) => CheckoutComponent,
           ),
       },
       {

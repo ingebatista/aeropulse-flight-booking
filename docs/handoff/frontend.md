@@ -133,3 +133,21 @@ Copia este bloque por hito y por solicitud de cambio de contrato.
 
 - La validación de búsqueda con M1 y la de inventario y Socket.IO con M2 siguen pendientes de su integración en `develop`. El adaptador `fake` aporta pre-evidencia para F3.
 - No se detectaron desviaciones del contrato en los casos probados.
+
+### F4 · 2026-11-19
+
+- El mapa abre la compra con un bloqueo vigente y conserva la suscripción y el reloj del servidor. La vista muestra las tarjetas de prueba, valida el formulario y limpia el campo de tarjeta después de cada envío.
+- El reintento en la misma vista conserva la clave de idempotencia. Si el resultado es incierto, pide reintroducir una tarjeta con la misma terminación y permite recuperar el boleto aunque el asiento ya esté reservado.
+- La confirmación y la consulta por código y apellido muestran el mismo componente de boleto.
+
+  | Comando | Salida |
+  | --- | --- |
+  | `npm run build` | `webpack 5.106.2 compiled successfully` para API y migraciones. Angular generó los *chunks* de compra y consulta. |
+  | `npm run build -w frontend -- --configuration fake` | `Application bundle generation complete. [3.570 seconds]` |
+  | `npm test -w frontend` | `Test Files  7 passed (7)` · `Tests  29 passed (29)` |
+  | `npm run lint` | `eslint .`, código de salida `0`. |
+  | Chrome con `npm start -w frontend -- --configuration fake` | Flujo revisado a 360 y 1366 px. Enter confirmó la reserva tras corregir un pago rechazado. La consulta rechazó el apellido incorrecto y devolvió el mismo boleto con el apellido correcto. El foco llegó al título del boleto. |
+  | Lighthouse, modo `snapshot` | `Accessibility: 100` en la compra a 360 px y en la consulta de escritorio, sin fallos de accesibilidad. |
+
+- La validación de compra y consulta contra el backend sigue pendiente de la integración de M2 y M3 en `develop`. El adaptador `fake` aporta pre-evidencia para F4.
+- No se detectaron desviaciones del contrato en los casos probados.

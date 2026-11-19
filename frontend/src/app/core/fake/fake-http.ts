@@ -10,14 +10,11 @@ import {
   ADMIN_FLIGHT_STATUSES,
   AIRPORT_CODES,
   BOOKING_CODE_PATTERN,
-  CARD_NUMBER_PATTERN,
   CLIENT_ID_HEADER,
   DATE_PATTERN,
   ERROR_HTTP_STATUS,
   HOLD_TOKEN_HEADER,
   IDEMPOTENCY_KEY_HEADER,
-  NAME_MAX_LENGTH,
-  NAME_MIN_LENGTH,
   SEAT_CODE_PATTERN,
   UUID_V4_PATTERN,
   type ConfirmBookingRequest,
@@ -25,6 +22,7 @@ import {
   type ValidationReason,
 } from '@aeropulse/shared';
 import { defer, of } from 'rxjs';
+import { normalizePassengerName, validCardNumber } from '../api/booking-input';
 import { FakeError, FakeReservations } from './fake-reservations';
 
 type Capability = 'search' | 'seats' | 'realtime' | 'booking' | 'admin';
@@ -215,10 +213,8 @@ function uuid(value: unknown, field: string): string {
 }
 
 function name(value: unknown, field: string): string {
-  const clean = checked(value, /^[^\p{Cc}\p{Zl}\p{Zp}]*$/u, field)
-    .normalize('NFC')
-    .trim();
-  if (clean.length < NAME_MIN_LENGTH || clean.length > NAME_MAX_LENGTH) invalid(field);
+  const clean = typeof value === 'string' ? normalizePassengerName(value) : null;
+  if (clean === null) invalid(field, value === undefined ? 'REQUIRED' : 'INVALID');
   return clean;
 }
 
@@ -226,12 +222,10 @@ function confirmation(value: unknown): ConfirmBookingRequest {
   const body = fields(value, ['flightId', 'seatCode', 'holdToken', 'passenger', 'payment'], 'body');
   const passenger = fields(body.passenger, ['firstName', 'lastName'], 'body.passenger');
   const payment = fields(body.payment, ['cardNumber'], 'body.payment');
-  const cardNumber = checked(payment.cardNumber, CARD_NUMBER_PATTERN, 'body.payment.cardNumber');
-  const sum = [...cardNumber].reverse().reduce((total, char, index) => {
-    const digit = Number(char) * (index % 2 === 0 ? 1 : 2);
-    return total + (digit > 9 ? digit - 9 : digit);
-  }, 0);
-  if (sum % 10 !== 0) invalid('body.payment.cardNumber');
+  const cardNumber = payment.cardNumber;
+  if (typeof cardNumber !== 'string' || !validCardNumber(cardNumber)) {
+    invalid('body.payment.cardNumber', cardNumber === undefined ? 'REQUIRED' : 'INVALID');
+  }
   return {
     flightId: uuid(body.flightId, 'body.flightId'),
     seatCode: checked(body.seatCode, SEAT_CODE_PATTERN, 'body.seatCode'),

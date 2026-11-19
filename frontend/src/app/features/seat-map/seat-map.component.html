@@ -6,17 +6,20 @@
     <p class="seat-message">Este vuelo está agotado.</p>
   }
 
-  @if (activeHold(); as hold) {
+  @if (clock.activeHold(); as hold) {
     <div class="own-hold">
       <div>
         <strong>Mi asiento · {{ hold.seatCode }}</strong>
         <div>
-          Tiempo restante <span class="countdown">{{ countdown() }}</span>
+          Tiempo restante <span class="countdown">{{ clock.countdown() }}</span>
         </div>
       </div>
       <button type="button" [attr.aria-disabled]="!canWrite()" (click)="release()">
         Liberar asiento
       </button>
+      @if (canSelect()) {
+        <a class="booking-primary" routerLink="../checkout">Continuar a la reserva</a>
+      }
     </div>
   }
   <div class="feedback" role="status">
@@ -42,7 +45,7 @@
     [seats]="inventory().seats()"
     [interactive]="true"
     [canSelect]="canSelect()"
-    [ownSeat]="activeHold()?.seatCode ?? null"
+    [ownSeat]="clock.activeHold()?.seatCode ?? null"
     (seatSelected)="choose($event)"
   />
 </section>
