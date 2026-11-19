@@ -86,11 +86,16 @@ describe('Búsqueda de vuelos', () => {
 
   it('espera el reconocimiento, intercambia los aeropuertos y envía los filtros sin cambiar la fecha', async () => {
     http.expectNone(url);
+    expect(page.querySelector('h1')?.textContent).toBe('Reserva tu vuelo nacional');
+    expect(page.querySelectorAll('.day')).toHaveLength(5);
+    expect(page.querySelector('.day__date')?.textContent).toBe('17 nov');
+    expect(page.querySelector('#flight-date')?.getAttribute('aria-describedby')).toBe('date-help');
     expect(page.querySelector<HTMLSelectElement>('#origin')?.value).toBe('BOG');
     expect(page.querySelector<HTMLSelectElement>('#destination')?.value).toBe('MDE');
     connect();
     http.expectOne(url).flush({ flights: [flight] });
     await fixture.whenStable();
+    expect(page.querySelector('.result-count')?.textContent?.trim()).toBe('1 vuelo');
     expect(page.querySelector('.flight__choose')?.getAttribute('href')).toBe(
       `/vuelos/${flight.id}/asientos`,
     );
@@ -100,12 +105,73 @@ describe('Búsqueda de vuelos', () => {
     expect(page.querySelector<HTMLSelectElement>('#origin')?.value).toBe('MDE');
     expect(page.querySelector<HTMLSelectElement>('#destination')?.value).toBe('BOG');
     expect(page.querySelector<HTMLInputElement>('#flight-date')?.value).toBe('2026-11-19');
+    expect(page.querySelector('#results-title')?.textContent?.trim()).toBe(
+      'Vuelos de Bogotá (BOG) a Medellín (MDE)',
+    );
     submit();
     http
       .expectOne('/api/flights?origin=MDE&destination=BOG&date=2026-11-19')
       .flush({ flights: [] });
     await fixture.whenStable();
+    expect(page.querySelector('#results-title')?.textContent?.trim()).toBe(
+      'Vuelos de Medellín (MDE) a Bogotá (BOG)',
+    );
+    expect(page.querySelector('.result-count')?.textContent?.trim()).toBe('0 vuelos');
     expect(page.textContent).toContain('No hay vuelos para esta búsqueda');
+  });
+
+  it('muestra la duración al cruzar la medianoche y las acciones de cada estado', async () => {
+    const delayed = {
+      ...flight,
+      id: '0205c9b8-19a1-42db-99ae-76617fc5b08b',
+      flightNumber: 'AP109',
+      status: 'DELAYED',
+    } as const;
+    const cancelled = {
+      ...flight,
+      id: '4b0d10e1-83f8-4b2b-9808-b1d5e167e38e',
+      flightNumber: 'AP110',
+      status: 'CANCELLED',
+    } as const;
+    const overnight = {
+      ...flight,
+      id: '660ee77d-d3c9-4538-915f-af1486f76e7c',
+      flightNumber: 'AP111',
+      departureAt: '2026-11-19T23:35:00.000Z',
+      arrivalAt: '2026-11-20T00:50:00.000Z',
+      soldOut: true,
+    };
+
+    connect();
+    http.expectOne(url).flush({ flights: [flight, delayed, cancelled, overnight] });
+    await fixture.whenStable();
+
+    expect(page.querySelector('.connection-strip [role="status"]')?.textContent).toContain(
+      'En vivo',
+    );
+    expect(page.querySelector('.result-count')?.textContent?.trim()).toBe('4 vuelos');
+    const rows = [...page.querySelectorAll('.flight')];
+    expect(rows.map((row) => row.querySelector('.flight__number strong')?.textContent)).toEqual([
+      'AP108',
+      'AP109',
+      'AP110',
+      'AP111',
+    ]);
+    expect(rows.map((row) => !!row.querySelector('.flight__choose'))).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(rows.map((row) => row.querySelector('a')?.getAttribute('href'))).toEqual(
+      [flight, delayed, cancelled, overnight].map(({ id }) => `/vuelos/${id}/ocupacion`),
+    );
+    expect(rows[3].querySelector('.itinerary__duration')?.textContent).toContain('1 h 15 min');
+    expect(rows[3].textContent).toContain('Día siguiente');
+    expect(rows[3].querySelectorAll('.flight-status')).toHaveLength(2);
+    expect(rows[3].querySelector('[data-status="SOLD_OUT"]')?.textContent).toContain('Agotado');
+    expect(page.querySelectorAll('.flight-information li')).toHaveLength(3);
+    expect(page.querySelector('.flight-information :is(a, button, [tabindex])')).toBeNull();
   });
 
   it('impide consultas con aeropuertos iguales o sin fecha', async () => {
@@ -122,6 +188,7 @@ describe('Búsqueda de vuelos', () => {
     await fixture.whenStable();
     submit();
     expect(page.querySelector('#flight-date')?.getAttribute('aria-invalid')).toBe('true');
+    expect(page.querySelector('#flight-date')?.getAttribute('aria-describedby')).toBe('date-error');
     expect(page.textContent).toContain('Introduce una fecha válida');
     http.expectNone((request) => request.url === '/api/flights');
   });
@@ -190,7 +257,9 @@ describe('Búsqueda de vuelos', () => {
     const row = page.querySelector('.flight');
     handlers.disconnect();
     await fixture.whenStable();
-    expect(page.textContent).toContain('Sin conexión');
+    expect(page.querySelector('.connection-strip [role="status"]')?.textContent).toContain(
+      'Sin conexión',
+    );
     expect(page.querySelector('.flight')).toBe(row);
 
     connect();

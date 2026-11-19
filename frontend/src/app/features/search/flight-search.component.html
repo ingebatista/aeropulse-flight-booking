@@ -1,8 +1,30 @@
-<div class="search-page">
+@let administrativeResults = adminResults();
+@let publicSearch = !statusView && !administrativeResults;
+@let occupancySource = statusView ? 'estado-de-vuelos' : null;
+
+<div
+  class="search-page"
+  [class.search-page--public]="publicSearch"
+  [class.search-page--admin]="!!administrativeResults"
+>
   <div class="page-heading">
-    <h1>
-      {{ flightActions() ? 'Administración' : statusView ? 'Estado de vuelos' : 'Buscar vuelos' }}
-    </h1>
+    @if (publicSearch) {
+      <div class="search-intro">
+        <h1>Reserva tu vuelo nacional</h1>
+        <p>Consulta salidas en vivo y elige tu asiento para viajar por Colombia.</p>
+      </div>
+    } @else if (administrativeResults) {
+      <div>
+        <p class="eyebrow admin-kicker">Control operacional</p>
+        <h1>Administración</h1>
+      </div>
+      <ng-container [ngTemplateOutlet]="connectionStatus" />
+    } @else {
+      <h1>Estado de vuelos</h1>
+      <ng-container [ngTemplateOutlet]="connectionStatus" />
+    }
+  </div>
+  <ng-template #connectionStatus>
     <div class="connection" role="status">
       @switch (connection().status) {
         @case ('connected') {
@@ -22,9 +44,12 @@
         }
       }
     </div>
-  </div>
-  @if (statusView) {
-    <a class="admin-access-link" routerLink="/admin">Administración</a>
+  </ng-template>
+  @if (publicSearch) {
+    <div class="connection-strip">
+      <span>Conexión de vuelos</span>
+      <ng-container [ngTemplateOutlet]="connectionStatus" />
+    </div>
   }
   <ng-content select="[flight-search-tools]" />
 
@@ -94,11 +119,13 @@
           required
           [value]="filters().date"
           [attr.aria-invalid]="dateInvalid() || null"
-          [attr.aria-describedby]="dateInvalid() ? 'date-error' : null"
+          [attr.aria-describedby]="dateInvalid() ? 'date-error' : publicSearch ? 'date-help' : null"
           (input)="changeDate(dateInput.value)"
         />
         @if (dateInvalid()) {
           <small class="field-error" id="date-error">Introduce una fecha válida.</small>
+        } @else if (publicSearch) {
+          <small id="date-help">La fecha y los horarios se muestran en UTC.</small>
         }
       </div>
 
@@ -108,7 +135,7 @@
           Buscando…
         } @else {
           <span class="magnifier" aria-hidden="true"></span>
-          Buscar vuelos
+          {{ administrativeResults ? 'Filtrar vuelos' : 'Buscar vuelos' }}
         }
       </button>
     </div>
@@ -123,7 +150,7 @@
           (click)="selectDay(day.date)"
         >
           <span class="day__weekday">{{ day.weekday }}</span>
-          <span class="day__date">{{ day.short }}</span>
+          <span class="day__date">{{ publicSearch ? day.compact : day.short }}</span>
           <span [id]="'day-' + day.date" hidden>{{ day.label }} UTC</span>
         </button>
       }
@@ -137,10 +164,22 @@
   <section class="results" aria-labelledby="results-title">
     <div class="results-heading">
       <div>
-        <h2 id="results-title">
-          {{ airports[query.origin].city }} a {{ airports[query.destination].city }}
+        <h2 id="results-title" [attr.tabindex]="administrativeResults ? '-1' : null">
+          @if (administrativeResults) {
+            Vuelos encontrados
+          } @else if (publicSearch) {
+            Vuelos de {{ airports[query.origin].city }} ({{ query.origin }}) a
+            {{ airports[query.destination].city }} ({{ query.destination }})
+          } @else {
+            {{ airports[query.origin].city }} a {{ airports[query.destination].city }}
+          }
         </h2>
-        <p>{{ dateLabel(query.date) }} · UTC</p>
+        <p>
+          @if (administrativeResults) {
+            {{ query.origin }} → {{ query.destination }} ·
+          }
+          {{ dateLabel(query.date) }} · UTC
+        </p>
       </div>
       <span class="result-count" role="status">
         @if (request.status === 'ready' || flights.length) {
@@ -165,63 +204,82 @@
       </div>
     }
     @if (flights.length) {
-      <ul class="flight-list" role="list">
-        @for (flight of flights; track flight.id) {
-          <li class="flight" [attr.tabindex]="flightActions() ? '-1' : null">
-            <div class="flight__number">
-              <span class="eyebrow">Vuelo</span>
-              <strong>{{ flight.flightNumber }}</strong>
-            </div>
-            <div class="itinerary">
-              <div class="itinerary__point">
-                <span class="eyebrow">Salida</span>
-                <time [attr.datetime]="flight.departureAt">{{ time(flight.departureAt) }}</time>
-                <span>{{ flight.origin }} <span class="utc">UTC</span></span>
+      @if (administrativeResults) {
+        <ng-container [ngTemplateOutlet]="administrativeResults" />
+      } @else {
+        <ul class="flight-list" role="list">
+          @for (flight of flights; track flight.id) {
+            @let status = flightStatuses[flight.status];
+            <li class="flight" [attr.data-flight-status]="publicSearch ? flight.status : null">
+              <div class="flight__number">
+                <span class="eyebrow">Vuelo</span>
+                <strong>{{ flight.flightNumber }}</strong>
               </div>
-              <span class="itinerary__line" aria-hidden="true"></span>
-              <div class="itinerary__point">
-                <span class="eyebrow">Llegada</span>
-                <time [attr.datetime]="flight.arrivalAt">{{ time(flight.arrivalAt) }}</time>
-                <span>
-                  {{ flight.destination }} <span class="utc">UTC</span>
-                  @if (flight.arrivalAt.slice(0, 10) !== flight.departureAt.slice(0, 10)) {
-                    <small class="arrival-day">Día siguiente</small>
+              <div class="itinerary">
+                <div class="itinerary__point">
+                  <span class="eyebrow">Salida</span>
+                  <time [attr.datetime]="flight.departureAt">{{ time(flight.departureAt) }}</time>
+                  <span>{{ flight.origin }} <span class="utc">UTC</span></span>
+                </div>
+                <div class="itinerary__route">
+                  @if (publicSearch) {
+                    @if (duration(flight); as travelTime) {
+                      <span class="itinerary__duration"
+                        ><span class="sr-only">Duración </span>{{ travelTime }}</span
+                      >
+                    }
                   }
-                </span>
+                  <span class="itinerary__line" aria-hidden="true"></span>
+                </div>
+                <div class="itinerary__point">
+                  <span class="eyebrow">Llegada</span>
+                  <time [attr.datetime]="flight.arrivalAt">{{ time(flight.arrivalAt) }}</time>
+                  <span>
+                    {{ flight.destination }} <span class="utc">UTC</span>
+                    @if (flight.arrivalAt.slice(0, 10) !== flight.departureAt.slice(0, 10)) {
+                      <small class="arrival-day">Día siguiente</small>
+                    }
+                  </span>
+                </div>
               </div>
-            </div>
-            <div class="flight__statuses">
-              <span class="flight-status" [attr.data-status]="flight.status">
-                {{ flightStatuses[flight.status] }}
-              </span>
-              @if (flight.soldOut) {
-                <span class="flight-status" data-status="SOLD_OUT">Agotado</span>
-              }
-            </div>
-            <div class="flight__fare">
-              <span class="eyebrow">Tarifa</span>
-              <strong>{{ fare(flight.fareCop) }}</strong>
-            </div>
-            <div class="flight__actions">
-              <a [routerLink]="['/vuelos', flight.id, 'ocupacion']"
-                >Ver ocupación<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span></a
-              >
-              @if (flightActions(); as actions) {
-                <ng-container
-                  [ngTemplateOutlet]="actions"
-                  [ngTemplateOutletContext]="{ $implicit: flight }"
-                />
-              } @else if (!statusView && flight.status !== 'CANCELLED' && !flight.soldOut) {
-                <a class="flight__choose" [routerLink]="['/vuelos', flight.id, 'asientos']"
-                  >Elegir asiento<span class="sr-only">
-                    en el vuelo {{ flight.flightNumber }}</span
-                  ></a
+              <div class="flight__statuses">
+                <span class="flight-status" [attr.data-status]="flight.status">
+                  @if (publicSearch) {
+                    <span class="flight-status__icon" aria-hidden="true">{{ status.icon }}</span>
+                  }
+                  {{ status.label }}
+                </span>
+                @if (flight.soldOut) {
+                  <span class="flight-status" data-status="SOLD_OUT">
+                    @if (publicSearch) {
+                      <span class="flight-status__icon" aria-hidden="true">−</span>
+                    }
+                    Agotado
+                  </span>
+                }
+              </div>
+              <div class="flight__fare">
+                <span class="eyebrow">Tarifa</span>
+                <strong>{{ fare(flight.fareCop) }}</strong>
+              </div>
+              <div class="flight__actions">
+                <a
+                  [routerLink]="['/vuelos', flight.id, 'ocupacion']"
+                  [queryParams]="{ from: occupancySource }"
+                  >Ver ocupación<span class="sr-only"> del vuelo {{ flight.flightNumber }}</span></a
                 >
-              }
-            </div>
-          </li>
-        }
-      </ul>
+                @if (!statusView && flight.status !== 'CANCELLED' && !flight.soldOut) {
+                  <a class="flight__choose" [routerLink]="['/vuelos', flight.id, 'asientos']"
+                    >Elegir asiento<span class="sr-only">
+                      en el vuelo {{ flight.flightNumber }}</span
+                    ></a
+                  >
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
     } @else if (searching()) {
       <div class="skeletons" aria-hidden="true">
         <div></div>
@@ -235,4 +293,29 @@
       </div>
     }
   </section>
+  @if (publicSearch) {
+    <ul class="flight-information" role="list" aria-label="Información de los vuelos">
+      <li>
+        <span class="flight-information__icon" aria-hidden="true">◷</span>
+        <div>
+          <strong>Horarios en UTC</strong>
+          <p>Las horas de salida y llegada usan la misma zona horaria.</p>
+        </div>
+      </li>
+      <li>
+        <span class="flight-information__icon" aria-hidden="true">$</span>
+        <div>
+          <strong>Tarifas en COP</strong>
+          <p>Consulta el importe publicado para cada vuelo en pesos colombianos.</p>
+        </div>
+      </li>
+      <li>
+        <span class="flight-information__icon" aria-hidden="true">▦</span>
+        <div>
+          <strong>Ocupación por vuelo</strong>
+          <p>«Ver ocupación» abre el mapa y el recuento de asientos.</p>
+        </div>
+      </li>
+    </ul>
+  }
 </div>

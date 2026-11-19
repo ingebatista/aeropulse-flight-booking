@@ -72,13 +72,12 @@ export class FlightSearchComponent {
   protected readonly airportCodes = AIRPORT_CODES;
   protected readonly statusView =
     inject(ActivatedRoute, { optional: true })?.snapshot.data['statusView'] === true;
-  protected readonly flightActions =
-    contentChild<TemplateRef<{ $implicit: Flight }>>('flightActions');
+  protected readonly adminResults = contentChild<TemplateRef<unknown>>('adminResults');
   protected readonly airports = AIRPORTS;
-  protected readonly flightStatuses: Record<FlightStatus, string> = {
-    SCHEDULED: 'Programado',
-    DELAYED: 'Retrasado',
-    CANCELLED: 'Cancelado',
+  protected readonly flightStatuses: Record<FlightStatus, { label: string; icon: string }> = {
+    SCHEDULED: { label: 'Programado', icon: '✓' },
+    DELAYED: { label: 'Retrasado', icon: '◷' },
+    CANCELLED: { label: 'Cancelado', icon: '×' },
   };
   protected readonly filters = signal<SearchFlightsQuery>({
     origin: 'BOG',
@@ -104,10 +103,15 @@ export class FlightSearchComponent {
     return [-2, -1, 0, 1, 2]
       .map((offset) => {
         const day = offsetDay(date, offset);
+        const dateParts = SHORT_DATE.formatToParts(day);
         return {
           date: day.toISOString().slice(0, 10),
           weekday: WEEKDAY.format(day),
-          short: SHORT_DATE.format(day),
+          short: dateParts.map(({ value }) => value).join(''),
+          compact: dateParts
+            .filter(({ type }) => type !== 'literal')
+            .map(({ value }) => value)
+            .join(' '),
           label: DATE_LABEL.format(day),
         };
       })
@@ -203,6 +207,16 @@ export class FlightSearchComponent {
 
   protected fare(value: number): string {
     return `COP ${AMOUNT.format(value)}`;
+  }
+
+  protected duration(flight: Flight): string | null {
+    const elapsed = Date.parse(flight.arrivalAt) - Date.parse(flight.departureAt);
+    if (!Number.isFinite(elapsed) || elapsed < 0) return null;
+
+    const minutes = Math.round(elapsed / 60_000);
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    return hours ? `${hours} h ${remainder} min` : `${minutes} min`;
   }
 
   private edit(fields: Partial<SearchFlightsQuery>): void {

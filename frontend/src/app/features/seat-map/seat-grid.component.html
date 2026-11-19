@@ -1,5 +1,17 @@
 @if (rows().length) {
-  <div class="cabin" role="group" aria-label="Cabina del vuelo">
+  <div
+    class="cabin"
+    [class.cabin--labeled]="showColumnLabels()"
+    role="group"
+    aria-label="Cabina del vuelo"
+  >
+    @if (showColumnLabels()) {
+      <div class="seat-columns" aria-hidden="true">
+        @for (column of columns(); track column[0]) {
+          <span [style.grid-column]="column[1]">{{ column[0] }}</span>
+        }
+      </div>
+    }
     @for (row of rows(); track row.number) {
       <div class="seat-row" role="group" [attr.aria-label]="'Fila ' + row.number">
         <span class="aisle" aria-hidden="true">{{ row.number }}</span>

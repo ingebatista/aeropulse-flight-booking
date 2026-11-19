@@ -18,7 +18,9 @@
         Liberar asiento
       </button>
       @if (canSelect()) {
-        <a class="booking-primary" routerLink="../checkout">Continuar a la reserva</a>
+        <a class="booking-primary" routerLink="../checkout" queryParamsHandling="preserve"
+          >Continuar a la reserva</a
+        >
       }
     </div>
   }

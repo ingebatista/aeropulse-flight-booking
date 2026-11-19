@@ -22,8 +22,13 @@ export class SeatGridComponent {
   readonly interactive = input(false);
   readonly canSelect = input(false);
   readonly ownSeat = input<string | null>(null);
+  readonly showColumnLabels = input(false);
   readonly seatSelected = output<string>();
   protected readonly appearance = SEAT_APPEARANCE;
+  protected readonly columns = computed(() => {
+    const letters = new Set([...this.seats().keys()].map((code) => code.slice(-1)));
+    return Object.entries(COLUMNS).filter(([letter]) => letters.has(letter));
+  });
   protected readonly rows = computed(() => {
     const rows = new Map<number, { seat: SeatEvent; column: number }[]>();
     for (const seat of this.seats().values()) {

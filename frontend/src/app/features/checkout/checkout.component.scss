@@ -1,94 +1,212 @@
-.checkout {
-  border: 1px solid var(--color-outline);
-  border-radius: 12px;
-  background: var(--color-surface);
-  padding: clamp(14px, 4vw, 24px);
-}
-
 h2,
 h3,
-p {
+p,
+dl,
+dd {
   margin: 0;
 }
 
-h2,
-h3 {
-  color: var(--color-navy);
-}
-
 h2 {
-  font-size: 22px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  color: var(--color-navy);
+  font-size: clamp(25px, 2.8vw, 36px);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 h3 {
-  font-size: 16px;
+  font-size: 19px;
 }
 
 form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   align-items: start;
+  gap: 20px;
 }
 
-.summary {
+.fields,
+.checkout-panel,
+.summary-body {
   display: grid;
-  gap: 4px;
-  border: 1px solid var(--color-outline);
-  border-radius: 8px;
-  background: var(--color-background);
-  padding: 12px;
-}
-
-.fields {
-  display: grid;
-  gap: 10px;
   min-width: 0;
+  gap: 16px;
 }
 
-.clock,
-.actions strong,
-.test-cards span {
-  font-variant-numeric: tabular-nums;
+.checkout-panel,
+.summary {
+  border: 1px solid var(--color-outline);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px #262b400a;
 }
 
+.checkout-panel,
+.summary-heading,
+.summary-body {
+  padding: clamp(16px, 2.3vw, 24px);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-navy);
+}
+
+.panel-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: #e8f2fd;
+  color: var(--color-primary-hover);
+  font-size: 20px;
+}
+
+.passenger-fields,
 .test-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
 }
 
 .test-cards button {
   display: grid;
+  gap: 4px;
   justify-items: start;
-  padding: 6px 8px;
-  min-height: 44px;
+  min-height: 60px;
+  padding: 8px 12px;
   border: 1px solid var(--color-control);
   border-radius: 8px;
   background: var(--color-background);
   color: var(--color-primary-hover);
   font-size: 13px;
   overflow-wrap: anywhere;
+  text-align: left;
 }
 
-.actions {
+.test-cards button:hover:not(:disabled) {
+  background: #e8f2fd;
+}
+
+.test-cards button:disabled {
+  cursor: default;
+}
+
+.simulation-note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eef1fb;
+  color: var(--color-navy);
+  font-size: 14px;
+}
+
+.simulation-note span {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+}
+
+.summary-heading {
+  border-radius: 11px 11px 0 0;
+  background: var(--color-navy);
+  color: var(--color-surface);
+}
+
+.summary-heading h3 {
+  margin-bottom: 12px;
+  color: #c9e3ff;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.flight-number {
+  display: block;
+  font-size: 27px;
+  line-height: 1.2;
+}
+
+.route {
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.summary-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  font-size: 13px;
+}
+
+.summary-times dd {
+  color: var(--color-navy);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.assigned-seat,
+.hold-time,
+.total {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  grid-column: 1 / -1;
-  border-top: 1px solid var(--color-outline);
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.assigned-seat,
+.hold-time {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #e8f2fd;
+  color: var(--color-primary-hover);
+}
+
+.hold-time {
+  background: #fff2cf;
+  color: #795000;
+}
+
+.clock,
+.total strong,
+.test-cards span {
+  font-variant-numeric: tabular-nums;
+}
+
+.clock,
+.assigned-seat strong {
+  font-size: 20px;
+}
+
+.total {
   padding-top: 12px;
+  border-top: 1px solid var(--color-outline);
+  color: var(--color-navy);
+  font-weight: 700;
+}
+
+.total strong {
+  font-size: 24px;
 }
 
 .checkout > a {
   margin-top: 12px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 740px) {
   form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 450px) {
+  .passenger-fields,
+  .test-cards {
     grid-template-columns: minmax(0, 1fr);
   }
 }

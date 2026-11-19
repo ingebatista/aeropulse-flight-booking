@@ -1,46 +1,79 @@
 @let booking = ticket();
 <article class="ticket" aria-labelledby="ticket-title">
-  <div class="ticket-heading">
+  <header class="ticket-heading">
+    <span class="ticket-check" aria-hidden="true">✓</span>
+    <p class="ticket-label">Boleto digital</p>
     <h2 id="ticket-title" #heading tabindex="-1">Reserva confirmada</h2>
-    <p>
-      Código de reserva <strong class="booking-code">{{ booking.code }}</strong>
-    </p>
+    <div class="ticket-code">
+      <p class="ticket-label">Código de reserva</p>
+      <div class="code-actions">
+        <strong class="booking-code">{{ booking.code }}</strong>
+        <button class="booking-primary" type="button" (click)="copyCode()">Copiar código</button>
+      </div>
+      <p class="copy-feedback" role="status">{{ copyFeedback() }}</p>
+      <p>Guarda el código para consultar el boleto junto con el apellido del pasajero.</p>
+    </div>
+  </header>
+  <div class="ticket-cut" aria-hidden="true"></div>
+  <div class="ticket-body">
+    <div class="ticket-route">
+      <span class="route-mark" aria-hidden="true">✈</span>
+      <div>
+        <p class="airports">
+          {{ booking.flight.origin }} <span aria-hidden="true">→</span>
+          <span class="sr-only">a</span> {{ booking.flight.destination }}
+        </p>
+        <p class="ticket-label">Vuelo {{ booking.flight.flightNumber }}</p>
+      </div>
+    </div>
+    <dl class="ticket-schedule">
+      <div>
+        <dt>Salida</dt>
+        <dd>
+          <time [attr.datetime]="booking.flight.departureAt"
+            >{{ utc(booking.flight.departureAt) }} UTC</time
+          >
+        </dd>
+      </div>
+      <div>
+        <dt>Llegada</dt>
+        <dd>
+          <time [attr.datetime]="booking.flight.arrivalAt"
+            >{{ utc(booking.flight.arrivalAt) }} UTC</time
+          >
+        </dd>
+      </div>
+    </dl>
+    <dl class="ticket-details">
+      <div>
+        <dt>Pasajero</dt>
+        <dd>{{ booking.passenger.firstName }} {{ booking.passenger.lastName }}</dd>
+      </div>
+      <div>
+        <dt>Asiento</dt>
+        <dd>{{ booking.seatCode }}</dd>
+      </div>
+      <div>
+        <dt>Importe confirmado</dt>
+        <dd>COP {{ money.format(booking.amountCop) }}</dd>
+      </div>
+      <div>
+        <dt>Emitido</dt>
+        <dd>
+          <time [attr.datetime]="booking.createdAt">{{ utc(booking.createdAt) }} UTC</time>
+        </dd>
+      </div>
+    </dl>
+    <div class="ticket-stub">
+      <span class="ticket-pattern" aria-hidden="true"></span>
+      <p>Comprobante de reserva de AeroPulse</p>
+    </div>
   </div>
-  <dl>
-    <div>
-      <dt>Vuelo</dt>
-      <dd>
-        {{ booking.flight.flightNumber }} · {{ booking.flight.origin }} →
-        {{ booking.flight.destination }}
-      </dd>
-    </div>
-    <div>
-      <dt>Pasajero</dt>
-      <dd>{{ booking.passenger.firstName }} {{ booking.passenger.lastName }}</dd>
-    </div>
-    <div>
-      <dt>Salida</dt>
-      <dd>
-        <time [attr.datetime]="booking.flight.departureAt"
-          >{{ utc(booking.flight.departureAt) }} UTC</time
-        >
-      </dd>
-    </div>
-    <div>
-      <dt>Llegada</dt>
-      <dd>
-        <time [attr.datetime]="booking.flight.arrivalAt"
-          >{{ utc(booking.flight.arrivalAt) }} UTC</time
-        >
-      </dd>
-    </div>
-    <div>
-      <dt>Asiento</dt>
-      <dd>{{ booking.seatCode }}</dd>
-    </div>
-    <div class="amount">
-      <dt>Importe</dt>
-      <dd>COP {{ money.format(booking.amountCop) }}</dd>
-    </div>
-  </dl>
+  <footer class="ticket-actions">
+    <a class="booking-primary" routerLink="/">Buscar vuelos</a>
+    <button class="ticket-secondary" type="button" (click)="printTicket()">
+      Imprimir / guardar PDF
+    </button>
+    <a class="ticket-secondary" routerLink="/estado-de-vuelos">Estado de vuelos</a>
+  </footer>
 </article>

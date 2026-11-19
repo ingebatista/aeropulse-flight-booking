@@ -76,6 +76,9 @@ Casos en los que la IA produjo algo incorrecto o subóptimo y cómo se corrigió
 - **19 de noviembre de 2026.** La primera versión del aviso de F3 dependía del último tick de la cuenta regresiva. Añadí el caso en que el barrido del servidor llega antes y una prueba para distinguirlo de la liberación voluntaria.
 - **19 de noviembre de 2026.** El compilador de Angular rechazó el acceso a los datos de un intento de compra que podía faltar. Cambié la plantilla para elegir el origen de los datos mediante una condición explícita.
 - **19 de noviembre de 2026.** La prueba de «Estado de vuelos» comparaba espacios del HTML que no se ven en pantalla. Ajusté la comprobación para verificar el título visible.
+- **19 de noviembre de 2026.** Axe detectó que el resumen de confirmación usaba un `aside` dentro del formulario. Lo convertí en una sección etiquetada para que conserve su encabezado y su lugar en el flujo de reserva.
+- **19 de noviembre de 2026.** La prueba de copia del boleto intentaba convertir un objeto parcial en `Navigator`. Conservé el prototipo del navegador de pruebas y sustituí únicamente el portapapeles de esa instancia.
+- **19 de noviembre de 2026.** El contexto de la plantilla proyectada de Administración perdía el tipo de los vuelos. El panel pasó a leer la señal tipada del almacén para renderizar su lista y su detalle.
 
 ### Integración (oleadas 0 y 1)
 

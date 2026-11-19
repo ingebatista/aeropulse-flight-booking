@@ -3,109 +3,163 @@
 } @else {
   <section class="checkout" aria-labelledby="checkout-title">
     @let submitted = locked();
+    @let currentFlight = flight();
     <h2 id="checkout-title" #heading tabindex="-1">Confirmar reserva</h2>
     @if (error()) {
       <p class="booking-alert" role="alert">{{ error() }}</p>
     }
     @if (!terminal() && (canStart() || locked())) {
       <form (submit)="submit($event, firstName, lastName, card)" novalidate>
-        <div class="summary">
-          <h3>Tu vuelo</h3>
-          <p>{{ flight()?.flightNumber }} · {{ flight()?.origin }} → {{ flight()?.destination }}</p>
-          <p>
-            Asiento <strong>{{ seat() }}</strong>
-          </p>
-          @if (clock.activeHold()) {
-            <p>
-              Tiempo restante <strong class="clock">{{ clock.countdown() }}</strong>
-            </p>
-          }
-        </div>
         <div class="fields">
-          <div class="booking-field">
-            <label for="first-name">Nombre</label>
-            <input
-              id="first-name"
-              #firstName
-              autocomplete="given-name"
-              required
-              [readOnly]="!!submitted"
-              [value]="submitted ? submitted.body.passenger.firstName : passenger().firstName"
-              [attr.aria-invalid]="errors().firstName ? 'true' : null"
-              [attr.aria-describedby]="errors().firstName ? 'first-name-error' : null"
-              (input)="edit('firstName', firstName.value)"
-            />
-            @if (errors().firstName) {
-              <small id="first-name-error">{{ errors().firstName }}</small>
-            }
-          </div>
-          <div class="booking-field">
-            <label for="last-name">Apellido</label>
-            <input
-              id="last-name"
-              #lastName
-              autocomplete="family-name"
-              required
-              [readOnly]="!!submitted"
-              [value]="submitted ? submitted.body.passenger.lastName : passenger().lastName"
-              [attr.aria-invalid]="errors().lastName ? 'true' : null"
-              [attr.aria-describedby]="errors().lastName ? 'last-name-error' : null"
-              (input)="edit('lastName', lastName.value)"
-            />
-            @if (errors().lastName) {
-              <small id="last-name-error">{{ errors().lastName }}</small>
-            }
-          </div>
-          <div class="booking-field">
-            <label for="card">Número de tarjeta de prueba</label>
-            <input
-              id="card"
-              #card
-              type="password"
-              inputmode="numeric"
-              autocomplete="off"
-              required
-              [readOnly]="!!pending()"
-              maxlength="19"
-              [attr.aria-invalid]="errors().card ? 'true' : null"
-              [attr.aria-describedby]="
-                errors().card ? 'card-error' : uncertain() ? 'card-retry' : null
-              "
-              (input)="setCardError()"
-            />
-            @if (errors().card) {
-              <small id="card-error" role="alert">{{ errors().card }}</small>
-            }
-            @if (uncertain(); as retry) {
-              <small id="card-retry">Usa una tarjeta válida terminada en {{ retry.last4 }}.</small>
-            }
-          </div>
-          <div class="test-cards" role="group" aria-label="Tarjetas del simulador">
-            @for (sample of testCards; track sample.cardNumber) {
-              <button
-                type="button"
-                [disabled]="!!pending()"
-                (click)="chooseCard(card, sample.cardNumber)"
-              >
-                <strong>{{ sample.label }}</strong><span>{{ sample.cardNumber }}</span>
-              </button>
-            }
-          </div>
+          <section class="checkout-panel" aria-labelledby="passenger-title">
+            <div class="panel-heading">
+              <span class="panel-icon" aria-hidden="true">♙</span>
+              <h3 id="passenger-title">Datos del pasajero</h3>
+            </div>
+            <p>Escribe el nombre y el apellido como figuran en el documento de identidad.</p>
+            <div class="passenger-fields">
+              <div class="booking-field">
+                <label for="first-name">Nombre</label>
+                <input
+                  id="first-name"
+                  #firstName
+                  autocomplete="given-name"
+                  required
+                  [readOnly]="!!submitted"
+                  [value]="submitted ? submitted.body.passenger.firstName : passenger().firstName"
+                  [attr.aria-invalid]="errors().firstName ? 'true' : null"
+                  [attr.aria-describedby]="errors().firstName ? 'first-name-error' : null"
+                  (input)="edit('firstName', firstName.value)"
+                />
+                @if (errors().firstName) {
+                  <small id="first-name-error">{{ errors().firstName }}</small>
+                }
+              </div>
+              <div class="booking-field">
+                <label for="last-name">Apellido</label>
+                <input
+                  id="last-name"
+                  #lastName
+                  autocomplete="family-name"
+                  required
+                  [readOnly]="!!submitted"
+                  [value]="submitted ? submitted.body.passenger.lastName : passenger().lastName"
+                  [attr.aria-invalid]="errors().lastName ? 'true' : null"
+                  [attr.aria-describedby]="errors().lastName ? 'last-name-error' : null"
+                  (input)="edit('lastName', lastName.value)"
+                />
+                @if (errors().lastName) {
+                  <small id="last-name-error">{{ errors().lastName }}</small>
+                }
+              </div>
+            </div>
+          </section>
+          <section class="checkout-panel" aria-labelledby="payment-title">
+            <div class="panel-heading">
+              <span class="panel-icon" aria-hidden="true">▤</span>
+              <h3 id="payment-title">Pago simulado</h3>
+            </div>
+            <div class="booking-field">
+              <label for="card">Número de tarjeta de prueba</label>
+              <input
+                id="card"
+                #card
+                type="password"
+                inputmode="numeric"
+                autocomplete="off"
+                required
+                [readOnly]="!!pending()"
+                maxlength="19"
+                [attr.aria-invalid]="errors().card ? 'true' : null"
+                [attr.aria-describedby]="
+                  errors().card ? 'card-error' : uncertain() ? 'card-retry' : null
+                "
+                (input)="setCardError()"
+              />
+              @if (errors().card) {
+                <small id="card-error" role="alert">{{ errors().card }}</small>
+              }
+              @if (uncertain(); as retry) {
+                <small id="card-retry"
+                  >Usa una tarjeta válida terminada en {{ retry.last4 }}.</small
+                >
+              }
+            </div>
+            <div class="test-cards" role="group" aria-label="Tarjetas del simulador">
+              @for (sample of testCards; track sample.cardNumber) {
+                <button
+                  type="button"
+                  [disabled]="!!pending()"
+                  (click)="chooseCard(card, sample.cardNumber)"
+                >
+                  <strong>{{ sample.label }}</strong><span>{{ sample.cardNumber }}</span>
+                </button>
+              }
+            </div>
+            <p class="simulation-note">
+              <span aria-hidden="true">ⓘ</span>
+              Usa una tarjeta del simulador. No se realizan cargos reales.
+            </p>
+          </section>
         </div>
-        <div class="actions">
-          <p>
-            Total <strong>COP {{ money.format(flight()?.fareCop ?? 0) }}</strong>
-          </p>
-          <button class="booking-primary" type="submit" [disabled]="!canSubmit()">
-            {{
-              pending()
-                ? 'Confirmando…'
-                : uncertain()
-                  ? 'Reintentar confirmación'
-                  : 'Confirmar reserva'
-            }}
-          </button>
-        </div>
+        <section class="summary" aria-labelledby="summary-title">
+          <div class="summary-heading">
+            <h3 id="summary-title">Resumen de la reserva</h3>
+            @if (currentFlight) {
+              <strong class="flight-number">{{ currentFlight.flightNumber }}</strong>
+              <p class="route">
+                {{ currentFlight.origin }} <span aria-hidden="true">→</span>
+                <span class="sr-only">a</span> {{ currentFlight.destination }}
+              </p>
+            }
+          </div>
+          <div class="summary-body">
+            @if (currentFlight) {
+              <dl class="summary-times">
+                <div>
+                  <dt>Salida</dt>
+                  <dd>
+                    <time [attr.datetime]="currentFlight.departureAt"
+                      >{{ utc(currentFlight.departureAt) }} UTC</time
+                    >
+                  </dd>
+                </div>
+                <div>
+                  <dt>Llegada</dt>
+                  <dd>
+                    <time [attr.datetime]="currentFlight.arrivalAt"
+                      >{{ utc(currentFlight.arrivalAt) }} UTC</time
+                    >
+                  </dd>
+                </div>
+              </dl>
+            }
+            <p class="assigned-seat">
+              <span>Asiento asignado</span> <strong>{{ seat() }}</strong>
+            </p>
+            @if (clock.activeHold()) {
+              <p class="hold-time">
+                <span>Tiempo restante del bloqueo</span>
+                <strong class="clock">{{ clock.countdown() }}</strong>
+              </p>
+            }
+            @if (currentFlight) {
+              <p class="total">
+                <span>Total a pagar</span>
+                <strong>COP {{ money.format(currentFlight.fareCop) }}</strong>
+              </p>
+            }
+            <button class="booking-primary" type="submit" [disabled]="!canSubmit()">
+              {{
+                pending()
+                  ? 'Confirmando…'
+                  : uncertain()
+                    ? 'Reintentar confirmación'
+                    : 'Confirmar reserva'
+              }}
+            </button>
+          </div>
+        </section>
       </form>
     } @else {
       @if (!error()) {
@@ -117,7 +171,9 @@
           }}
         </p>
       }
-      <a class="booking-primary" routerLink="../asientos">Volver al mapa</a>
+      <a class="booking-primary" routerLink="../asientos" queryParamsHandling="preserve"
+        >Volver al mapa</a
+      >
     }
   </section>
 }
